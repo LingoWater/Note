@@ -1,0 +1,173 @@
+TCP/IP协议是一个协议簇。里面包括很多协议的。UDP只是其中的一个。之所以命名为TCP/IP协议，因为TCP,IP协议是两个很重要的协议，就用他两命名了。
+TCP/IP协议集包括应用层,传输层，网络层，网络访问层。
+其中应用层包括:
+超文本传输协议(HTTP):万维网的基本协议.   
+文件传输(TFTP简单文件传输协议):   
+远程登录(Telnet),提供远程访问其它主机功能,它允许用户登录internet主机,并在这台主机上执行命令.    
+网络管理(SNMP简单网络管理协议),该协议提供了监控网络设备的方法,以及配置管理,统计信息收集,性能管理及安全管理等.   
+域名系统(DNS),该系统用于在internet中将域名及其公共广播的网络节点转换成IP地址. 
+其次网络层包括:    
+Internet协议(IP:Internet Protocol)     
+Internet控制信息协议(ICMP)    
+地址解析协议(ARP)    
+反向地址解析协议(RARP)  
+最后说网络访问层:网络访问层又称作主机到网络层(host-to-network).网络访问层的功能包括IP地址与物理地址硬件的映射,以及将IP封装成帧.
+基于不同硬件类型的网络接口,网络访问层定义了和物理介质的连接.
+
+
+1、HTTP与HTTPS
+
+	http://blog.csdn.net/iispring/article/details/51474529
+	http://blog.csdn.net/iispring/article/details/51615631
+
+	http超文本传输协议，属于应用层的协议，用于网络请求。
+
+	htt的请求方式有post、get、head、put、trace、options、delete，http常用的请求方式是get和post
+
+	get请求可以被缓存
+
+	get方式请求，参数以key=》value的方式用?和&符号连接，放到url后面，请求url和参数支持的最大长度是2048个字符，也就是2kb
+
+	get方式请求，参数接在url后面，且不会被加密，容易被劫持看到敏感信息，所以是不安全的请求方式
+
+	post请求不会被缓存
+
+	post方式请求参数放在请求体中，请求参数理论上没有大小限制
+
+	post方式请求从url中看不到参数，相对于get方式请求较安全
+
+	因为post请求相对于get请求较安全，所以增删改操作应该用post请求，get请求用来查询
+
+	一个完整的网络请求包括客户端发送请求和服务端响应请求，即请求和响应
+
+	请求包括表示地址的url、请求头和可选择的请求体。
+
+	请求头包含了客户端想告诉服务端的元数据信息，是一些键值对，通常是W3C定义了的标准的http请求头名称，也支持自定义请求头
+
+	get请求没有请求体，post请求有请求体
+
+	响应包括相应头和响应体。响应头包含了服务器想告诉客户端的元数据信息，可以自定义响应头，也可以向客户端写入cookie信息。
+
+	android2.3之前提供了DefaultHttpClient来使用http访问网络，DefaultHttpClient是Apache用于访问网络的客户端，提供了强大的API，太过复杂
+	android为了支持向后兼容，后期很难对DefaultHttpClient进行增强，从android2.3版本引进了HttpURLConnection类，HttpURLConnection比较轻量，
+	能满足大部分需求，所以android推荐使用，但不强制
+
+	从android6.0API23开始android放弃了DefaultHttpClient支持，强制使用HttpURLConnection
+
+	在使用post请求时，需要设置ContentLength请求头，如果知道请求体的字节流大小，最好使用setFixedLengthStreamingMode(int length)手动设置；
+	如果不手动设置，会把流全部读入的内存，直到关闭输出流时才会把输出流的字节大小写入到ContentLength，这样会占很大的内存
+	
+	如果请求体比较大，但事先又不知道具体大小，可以通过setChunkedStreamingMode (int chunkLength)把请求体分成若干块多次发送
+
+	使用setChunkedStreamingMode (int chunkLength)方法需要服务器支持，就服务器需要支持HTTP1.1
+
+
+	https是超文本安全传输协议，是对数据进行加密传输，即传输的是密文
+
+	https使用http协议+ssl/tls协议，tls(Transport Layer Security)是传输层安全协议，ssl(Security Sockets Layer)是安全套接层协议
+
+	tls是ssl的后续版本，它们支持的加密算法不同，不能互操作
+
+	HTTPS为了兼顾安全与效率，同时使用了对称加密和非对称加密。对数据进行对称加密，对称加密所要使用的密钥通过非对称加密传输
+
+	对称加密又叫做私钥加密，特点是算法公开、加密和解密速度快，适合于对大数据量进行加密，常见的对称加密算法有DES、3DES、RC5和IDEA等。
+
+	非对称加密也叫做公钥加密。非对称加密与对称加密相比，其安全性更好。
+
+	非对称加密的缺点是加密和解密花费时间长、速度慢，只适合对少量数据进行加密。使用的主要算法有：RSA、D-H、ECC（椭圆曲线加密算法）等。
+
+	HTTPS在传输的过程中会涉及到三个密钥：服务器端的公钥和私钥，用来进行非对称加密；客户端生成的随机密钥，用来进行对称加密
+
+	一个HTTPS请求实际上包含了两次HTTP传输：
+
+		1.客户端向服务器发起HTTPS请求，连接到服务器的443端口
+
+		2.服务器将自己的公钥发送给客户端，实际是发送由CA用CA的私钥对服务器公钥签名后得到的数字证书
+
+		3.客户端收到服务器端的公钥之后，会对公钥进行检查，验证其合法性，然后生成一个随机值密钥，至此，HTTPS中的第一次HTTP请求结束
+
+		4.客户端会发起HTTPS中的第二个HTTP请求，将用公钥加密之后的客户端密钥发送给服务器
+
+		5.服务器接收到客户端发来的密文之后，用私钥进行非对称解密，解密之后得到客户端密钥，然后用客户端密钥对数据进行对称加密
+
+		6.服务器将加密后的密文发送给客户端
+
+		7.客户端收到服务器发送来的密文，用客户端密钥对其进行对称解密，得到服务器发送的数据。这样整个HTTPS传输完成。
+
+	不论什么平台，设备的操作系统中都会内置100多个全球公认的CA，说具体点就是设备中存储了这些知名CA的公钥。
+
+	当客户端接收到服务器的数字证书的时候，会进行如下验证：
+
+		1.首先客户端会用设备中内置的CA的公钥尝试解密数字证书，如果所有内置的CA的公钥都无法解密该数字证书，
+		说明该数字证书不是由一个全球知名的CA签发的，这样客户端就无法信任该服务器的数字证书。
+
+		2.如果有一个CA的公钥成功解密该数字证书，说明该数字证书就是由该CA的私钥签发的，因为被私钥加密的密文只能被与其成对的公钥解密。
+
+		3.检查客户端当前访问的服务器的域名是与数字证书中提供的“颁发给”这一项吻合，还要检查数字证书是否过期等
+
+	Android中HTTPS请求，使用HttpsURLConnection这个类，HttpsURLConnection是继承自HttpURLConnection的，其用法跟HttpURLConnection一样
+
+	HttpsURLConnection使用setSSLSocketFactory方法添加非系统内置的信任证书
+
+
+2、TCP、UDP的区别
+
+	http://baike.baidu.com/link?url=BBE7YesJYCY0FdBw095ehygGSC7vLq2CgyyCeDzMXumtHH5JEW-AHx02V08hmtd6nuojLIznEi9oAwtRTCSCM3wfWEuFWYAKLPTUWsTDn16jN_-1rwY3qz4WOLmmCgDj
+	http://www.cnblogs.com/bizhu/archive/2012/05/12/2497493.html
+
+	TCP (Transmission Control Protocol)和UDP(User Datagram Protocol)协议属于传输层协议。
+
+	TCP提供IP环境下的数据可靠传输。通过面向连接、端到端和可靠的数据包发送。
+
+	UDP则不为IP提供可靠性或差错恢复功能。
+
+	TCP（Transmission Control Protocol，传输控制协议）是基于连接的协议。
+	UDP（User Data Protocol，用户数据报协议）是面向非连接的协议，是面向报文的。
+
+	“面向连接”就是在正式通信前必须要与对方建立起连接。
+
+	TCP支持的应用协议主要有：Telnet、FTP、SMTP等；
+	UDP支持的应用层协议主要有：NFS（网络文件系统）、SNMP（简单网络管理协议）、DNS（主域名称系统）、TFTP（通用文件传输协议）等。
+
+	小结TCP与UDP的区别：
+	1.基于连接与无连接；
+	2.对系统资源的要求（TCP较多，UDP少）；
+	3.UDP程序结构较简单；
+	4.流模式与数据报模式 ；
+	5.TCP保证数据正确性，UDP可能丢包，TCP保证数据顺序，UDP不保证。
+
+
+3、TCP的三次握手、四次挥手
+
+	http://baike.baidu.com/link?url=BBE7YesJYCY0FdBw095ehygGSC7vLq2CgyyCeDzMXumtHH5JEW-AHx02V08hmtd6nuojLIznEi9oAwtRTCSCM3wfWEuFWYAKLPTUWsTDn16jN_-1rwY3qz4WOLmmCgDj
+	http://www.cnblogs.com/bizhu/archive/2012/05/12/2497493.html
+
+	TCP三次握手过程：
+
+	1 主机A通过向主机B 发送一个含有同步序列号的标志位的数据段给主机B ,向主机B 请求建立连接,通过这个数据段,
+	主机A告诉主机B 两件事:我想要和你通信;你可以用哪个序列号作为起始数据段来回应我.
+
+	2 主机B 收到主机A的请求后,用一个带有确认应答(ACK)和同步序列号(SYN)标志位的数据段响应主机A,也告诉主机A两件事:
+	我已经收到你的请求了,你可以传输数据了;你要用哪佧序列号作为起始数据段来回应我
+
+	3 主机A收到这个数据段后,再发送一个确认应答,确认已收到主机B 的数据段:"我已收到回复,我现在要开始传输实际数据了
+	这样3次握手就完成了,主机A和主机B 就可以传输数据了.
+
+	3次握手的特点：
+
+		没有应用层的数据
+		SYN这个标志位只有在TCP建产连接时才会被置1
+		握手完成后SYN标志位被置0
+
+	TCP建立连接要进行3次握手,而断开连接要进行4次
+
+	1 当主机A完成数据传输后,将控制位FIN置1,提出停止TCP连接的请求
+
+	2  主机B收到FIN后对其作出响应,确认这一方向上的TCP连接将关闭,将ACK置1
+
+	3 由B 端再提出反方向的关闭请求,将FIN置1
+
+	4 主机A对主机B的请求进行确认,将ACK置1,双方向的关闭结束.
+
+	由TCP的三次握手和四次断开可以看出,TCP使用面向连接的通信方式,大大提高了数据通信的可靠性,使发送数据端
+	和接收端在数据正式传输前就有了交互,为数据正式传输打下了可靠的基础

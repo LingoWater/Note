@@ -1,0 +1,34 @@
+pwd: 打印工作目录路径
+
+cp：复制    如：cp test /data/app把test文件复制到/data/app目录下
+
+./test 可直接执行test文件
+
+
+1、vi
+vi 1.txt 会直接创建并打开一个文件1.txt
+
+2、>
+> t.txt 会创建文件t.txt
+
+3、touch
+touch的作用是更改一个文件或目录的时间。touch 2.txt 如果2.txt不存在，则创建空文件2.txt
+
+4、echo 
+echo “abcd” > 3.txt 可以直接创建文件3.txt并将abcd写入。
+
+5、less 、more 、cat 
+三者都是将文件内容输出到标准输出，其中less和more可以分页显示，cat是显示全部。
+三者可以根据已经存在的文件创建新的文件。假设已经存在文件1.txt。
+cat 1.txt > 2.txt
+less 1.txt > 3.txt
+more 1.txt > 4.txt
+此时创建的文件内容都和1.txt中文件内容相同。
+
+mkdir：创建文件夹   如：mkdir floder  创建一个名为floder的文件夹
+
+mv oldName newName：重命名文件/文件夹   如：mv 1.txt 2.txt将1.txt改成2.txt
+	
+	mv Learn/* . 将Learn下的所有文件和文件夹移到当前目录下(.表示当前目录)
+
+open 路径：打开目录    如：open ./ 打开当前目录

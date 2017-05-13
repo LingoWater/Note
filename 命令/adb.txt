@@ -1,0 +1,10 @@
+adb install:安装apk  如：adb install + apk目录
+
+adb push：把文件上传到android设备上   如：adb push test /sdcard/test 把test文件上传到sdcard目录中
+
+adb shell：操作android设备上的文件和目录，先执行adb shell命令     如：adb shell回车后，cd sdcard进入sdcard目录，chmod 777 test修改test文件权限
+
+df：可查看文件系统的结构
+
+adb logcat：查看运行时的信息
+

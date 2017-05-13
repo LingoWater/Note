@@ -1,0 +1,496 @@
+SF使用的图形缓冲区是直接在FB上分配的，而应用程序进程使用的图形缓冲区是在匿名共享内存中分配的。
+再者，应用程序进程使用的图形缓冲区最终都是要合成到SF使用的图形缓冲区去的，因此，就将SF使用的图形缓冲区称为“主图形缓冲区”。
+对双缓冲区技术，可以在硬件和软件上进行支持。例如，应用程序进程也是使用双缓冲技术来渲染窗口的，即它拥有的其实是一个图形缓冲区队列，
+而不是一个单独的图形缓冲区，而SF也是拥有一个图形缓冲区队列，队列的大小取决于FB可以分配的图形缓冲区的数量。
+
+1、Android应用程序窗口（Activity）实现框架简要介绍和学习计划
+
+	http://blog.csdn.net/luoshengyang/article/details/8170307
+
+	Activity组件的UI实现需要与WindowManagerService服务和SurfaceFlinger服务进行交互。Activity组件在启动完成后，
+	会通过一个类型为Session的Binder对象来请求WindowManagerService为它创建一个类型为WindowState的对象，用来描述它的窗口状态。
+	Android应用程序会通过一个类型为Client的Binder对象来请求SurfaceFlinger服务为它创建一个类型为Layer的对象，用来描述它的窗口数据。
+
+	SurfaceFlinger服务为Android应用程序创建一个类型为Layer的对象之后，会返回一个类型为SurfaceLayer的Binder对象给Android应用程序，
+	这样Android应用程序就可以通过这个Binder对象来请求SurfaceFlinger服务来分配图形缓冲区。
+
+	 事实上，用来关联Activity组件和Layer对象的SurfaceLayer对象并不是由Android应用程序请求SurfaceFlinger服务来创建的，
+	而是由WindowManagerService服务请求SurfaceFlinger服务来创建的。WindowManagerService服务得到这个SurfaceLayer对象之后，
+	再将它的一个代理对象返回给在Android应用程序这一侧的Activity组件。这样，Activity组件和WindowManagerService服务就可以通过
+	同一个SurfaceLayer对象来操作在SurfaceFlinger服务这一侧的Layer对象，而操作Layer对象的目的就是为了修改Activity组件的UI。
+
+	Activity类是从ContextThemeWrapper类继承下来的，而ContextThemeWrapper类又是从ContextWrapper类继承下来的，
+	最后ContextWrapper类又继承了Context类。
+
+	Activity内保存LocalWindowManager对象，LocalWindowManager内部保存WindowManagerImpl对象，这样，
+	LocalWindowManager类就可以通过WindowManagerImpl类来真正实现管理应用程序窗口的功能，例如，用来维护应用程序窗口内部的视图（View）。
+
+	Activity组件创建Window对象时，就会将这个Activity组件的Context接口保存在这个对应的Window对象的成员变量mContext中。
+	这样，Window对象就可以通过它访问它所描述的Activity组件的资源。
+
+	Activity实现了Window.Callback接口，Window对象保存了这个Callback接口，Window可以通过它将事件交给Activity来处理。
+
+	Window也保存了LocalWindowManager对象，Activity和Window就可以使用同一个LocalWindowManager对象来管理它们所描述的UI了。
+
+	Activity的Window是PhoneWindow类型，PhoneWindow继承Window类。
+
+	PhoneWindow对象是通过调用PolicyManager类的静态成员函数makeNewWindow来创建的。
+
+	PolicyManager类内保存了一个静态Policy对象，Policy对象实现了IPolicy接口makeNewWindow成员函数。
+
+	PhoneWindow类有两个重要的成员变量mDecor和mContentParent，分别描述自己的窗口视图和视图内容的父窗口。
+
+	DecorView -继承-> FrameLayout -继承->ViewGroup -继承-> View。
+
+	ViewRoot继承自Handler，Activity保存了ViewRoot，ViewRoot保存了DecorView，ViewRoot控制DecorView。
+
+	ViewRoot把接收到的事件封装成Message，发送到消息队列。ViewRoot把要绘制UI的操作封装成Message，发送到消息队列。
+
+	ViewRoot保存了一个继承自WindowManager.LayoutParams的ViewGroup.LayoutParams对象，用来描述Activity组件的UI布局信息。
+
+	每一个Activity都有一个对应的ViewRoot对象、DecorView对象和WindowManager.LayoutParams对象。
+
+	用WindowManagerImpl来管理ViewRoot、DecorView和WindowManager.LayoutParams，就是由其成员变量mRoots、mViews和mParams三个数组来维护。
+
+	ViewRoot保存了一个Surface，这个Surface保存一个C++层的Surface对象的指针值。这个C++层的Surface对象并没有一个对应的SurfaceControl对象。
+
+	Surface保存了一个Canvas画布，用来描述应用程序窗口的纹理，通过这个画布可以访问到应用程序窗口的图形缓冲区。
+
+	ViewRoot需要重新绘制UI时，就会调用它的draw函数，其draw函数首先得到其Surface的Canvas画布，然后再将画布传递给其DecorView的draw函数。
+
+	在Canvas画布上绘制纹理的工作是通过Skia图形库API来进行的。
+
+	ViewRoot内保存了一个静态Session对象，它是WMS服务中Session对象的Binder代理对象，Session是一个实现了IWindowSession接口的Binder对象。
+	通过这个Session对象与WMS服务进行通信。
+
+
+	每一个Activity组件在WindowManagerService服务这一侧都有一个对应的WindowState对象，用来描述Activity组件的窗口状态。
+
+	Activity组件是在启动完成之后，请求WindowManagerService服务为它创建一个WindowState对象。
+
+	WindowState类有两个重要的成员变量mSession和mSurface，它们的类型分别为Session和Surface。
+
+	Session对象保存了SurfaceSession对象，SurfaceSession对象保存C++层的SurfaceComposerClient对象的地址。
+	SurfaceSession对象创建的时候，SurfaceComposerClient对象也会同时被创建。WMS服务通过SurfaceComposerClient对象连接到SurfaceFlinger服务。
+
+	WMS -保存-> WindowState -保存-> Session -保存-> SurfaceSession -保存-> C++层的SurfaceComposerClient对象的地址。
+
+	WMS服务中Session对象、SurfaceSession对象以及SurfaceComposerClient(地址)对象与每一个应用程序进程是一对一的关系。
+
+	WMS服务中Session对象、SurfaceSession对象以及SurfaceComposerClient(地址)对象与每一个应用程序的Activity是一对多的关系。
+
+	Activity与WindowState是一对一的关系。
+
+
+	WindowState中的Surface对象中保存了一个SurfaceLayer对象，SurfaceLayer对象由WMS服务请求SurfaceFlinger服务创建。
+	WMS服务将这个Surface跨进程返回给Activity，Activity用这个Surface内的SurfaceLayer对象初始化ViewRoot内的Surface对象。
+
+	Activity的UI第一次要被绘制之前向WMS服务发送一个请求，WMS请求SurfaceFlinger服务创建一个Layer对象以及一个SurfaceLayer对象。
+
+	WindowState中的Surface对象在C++层都有一个对应的SurfaceControl对象，它保存了一个C++层的一个SurfaceControl对象的地址。
+
+	WMS服务通过WindowState中的Surface对象在C++层都有一个对应的SurfaceControl对象设置应用程序窗口的属性。
+
+	应用程序通过ViewRoot中的Surface对象在C++层的Surface对象设置应用程序窗口的图形缓冲区，即设置应用程序窗口的纹理。
+
+	实际上从3.0开始，就已经存在一个叫OpenGLRenderer的模块用来替代Skia了，OpenGLRenderer就是封装了OpenGL进行硬件渲染的，
+	但是由于之前由Skia提供的绘图API不是每一个都可以被OpenGLRenderer替换，因此现在Skia还是保留着的。
+	当一个Window或者一个View关闭了硬件渲染时，就用软件渲染，也就是走原来Skia那一套。
+
+
+2、Android应用程序窗口（Activity）的运行上下文环境（Context）的创建过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8201936
+
+	Activity -继承-> ContextThemeWrapper -继承-> ContextWrapper -继承-> Context。    ContextImpl -继承-> Context。
+	
+	ContextThemeWrapper和ContextWrapper都用成员变量mBase保存了ContextImpl对象，Activity可以通过ContextImpl对象来执行一些具体的操作。
+
+	ContextImpl又用成员变量mOuterContext来引用了与它关联的一个Activity组件，ContextImpl类也可以将一些操作转发给Activity来处理。
+
+	ActivityThread类负责管理创建Activity实例和Activity对应的ContextImpl对象。
+
+	Instrumentation类是用来记录应用程序与系统的交互过程的。
+
+	AMS会把ActivityRecord(ActivityClientRecord)对象传给ActivityThread去创建Activity实例
+
+	AcitvityThread在performLaunchActivity函数中获取Activity实例并对他初始化。
+	ActivityThread会把ActivityClientRecord对象传给performLaunchActivity。
+
+	1、创建Activity实例
+
+		ActivityThread中保存了Instrumentation对象，Instrumentation对象负责创建Activity实例和回调Activity的生命周期方法。
+
+		ActivityClientRecord对象内保存PackageInfo对象、Bundle和Intent对象，PackageInfo保存了ClassLoader类构造器对象。
+		Intent保存了ComponentName对象，ComponentName保存了Activity类名。
+
+		在performLaunchActivity函数中把ClassLoader、Activity类名和Intent传给Instrumentation类的newActivity函数返回Activity实例。
+
+		newActivity函数把Activity类名传给ClassLoader的loadClass函数返回一个Class对象，再调用Class的newInstance函数返回Activity实例。
+
+	2、创建ContextImpl对象
+
+		在performLaunchActivity函数中创建ContextImpl对象。
+
+	3、设置ContextImpl对象保存Activity
+
+		在performLaunchActivity函数中把Activity的实例传给ContextImpl对象的setOuterContext函数把Activity保存在ContextImpl中
+
+	4、设置Activity的父类ContextThemeWrapper和ContextThemeWrapper的父类ContextWrapper保存ContextImpl对象
+
+		在performLaunchActivity函数中把ContextImpl对象传给Activity的attach函数。
+
+		Activity的attach函数把ContextImpl对象传给ContextThemeWrapper的attachBaseContext函数把它保存在ContextThemeWrapper中
+
+		ContextThemeWrapper的attachBaseContext函数把ContextImpl对象传给ContextWrapper的attachBaseContext函数，
+		把ContextImpl对象保存在ContextWrapper中。
+
+	
+	保存ContextImpl对象的操作是在给Activity初始化的过程中执行的，调用Activity的attach函数来执行初始化。
+
+	对Activity初始化需要很多信息如：ContextImpl对象、Application对象、ActivityInfo对象和Configuration对象等，都保存在Activity中。
+
+	Application用来描述该Activity组件实例的应用程序信息，ActivityInfo描述Activity信息，Configuration用来描述Activity组件实例配置信息。
+
+	Activity在初始化函数attach中创建PhoneWindow对象，并保存在其内部。
+
+	把Activity实现的CallBack接口保存在PhoneWindow中，把WindowManager保存在PhoneWindow和Activity中。
+	
+	Activity初始化完成后把Activity实例和Bundle信息传给Instrumentation的callActivityOnCreate函数回调Activity的onCreate生命周期函数。
+	
+	当Activity子类在重写父类Activity的成员函数onCreate时，就必须回调父类Activity的成员函数onCreate。因为没调用父类onCreate会抛出异常。
+
+	onCreate会检查对应的应用程序窗口的主题属性android:windowNoDisplay的值是否等于true。 
+	所以，可以设置主题属性android:windowNoDisplay让窗口是否显示。
+
+
+3、Android应用程序窗口（Activity）的窗口对象（Window）的创建过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8223770
+
+	PhoneWindow对象是在Activity类的成员函数attach中创建的，并保存在Activity中，PhoneWindow继承自Window类。
+
+	Window中保存了Activity类型的Context、Activity实现的Callback接口、LocalWindowManager对象和WindowManager.LayoutParams窗口布局信息等。
+
+	PhoneWindow内保存了DecorView和mContentParent，mContentParent用来描述一个视图容器，不过这个容器也有可能指向的是DecorView本身。
+
+	PhoneWindow的应用程序窗口是通过一个类型为LocalWindowManager的本地窗口管理器来维护的。
+
+	LocalWindowManager的本地窗口管理器又是通过一个类型为WindowManagerImpl的窗口管理器来维护应用程序窗口的。
+
+	1、创建PhoneWindow实例
+
+		把Activity实例传给PhoneWindow的构造函数返回一个PhoneWindow实例，PhoneWindow把activity保存在其内部。
+
+		PhoneWindow构造函数同时创建了一个LayoutInflater对象保存在其内部，后面会用它来解析视图布局。
+
+	2、设置Callback接口
+
+		把Activity实现的Callback接口传给Window的setCallback函数，Window把它保存在其内部。
+
+	3、设置软键盘输入区域的显示模式
+
+		窗口的软键盘输入区域的显示模式有六个取值。这里会在Window内部保存是否设置的软键盘输入区域的显示模式。
+
+	4、设置本地窗口管理器
+
+		把appToken(ActivityRecord的Binder本地对象)和Activity组件的名称传给Window的setWindowManager函数设置窗口管理器。
+
+		ActivityRecord是Activity的Binder本地对象，用来描述所关联的Activity的状态。
+
+		ActivityRecord和Activity组件名称都会被保存在Window内部。
+
+		先创建一个WindowManagerImpl实例，再创建一个LocalWindowManager实例，并把WindowManagerImpl保存到LocalWindowManager中
+
+		LocalWindowManager的构造函数中还会把WindowManagerImpl中的Display系统屏幕属性信息传给Activity的getResources()函数返回的
+		Resources对象的getDefaultDisplay方法，去调整系统屏幕属性信息。然后把Display保存在LocalWindowManager内。
+
+		
+4、Android应用程序窗口（Activity）的视图对象（View）的创建过程分析
+	
+	http://blog.csdn.net/luoshengyang/article/details/8245546
+
+	Activity组件在启动的时候，系统会为它创建窗口对象（Window），同时，系统也会为这个窗口对象创建视图对象。
+
+	当Activity组件被激活的时候，系统如果发现与它的应用程序窗口视图对象所关联的ViewRoot对象还没有创建，那么就会先创建这个ViewRoot对象。
+
+	1、设置UI布局文件
+
+		当Activity实例对象被创建并且初始化完成后，ActivityThread在performLaunchActivity函数中把Activity传给Instrumentation的
+		callActivityOnCreate函数回调Activity的onCreate生命周期函数。在onCreate我们通过setContentView函数设置了布局文件资源ID。
+
+		把布局文件资源ID传给-->Activity的setContentView-->PhoneWindow的setContentView
+
+	2、创建DecorView对象
+
+		在PhoneWindow中 setContentView-->installDecor-->generateDecor
+
+		generateDecor函数创建了DecorView，并保存在了PhoneWindow的内部
+
+	3、加载窗口视图容器
+
+		在PhoneWindow中 setContentView-->installDecor-->generateLayout
+
+		根据窗口的Feature选择视图容器文件添加到DecorView中，并通过ID查找mContentParent。
+
+		函数installDecor还会检查是否有标题栏，如果没有隐藏标题栏。
+
+	4、解析UI布局文件对应的二进制文件生成View控件添加到视图容器中
+
+		PhoneWindow的setContentView生成DecorView和加载视图容器后用初始化时创建的LayoutInflater解析资源ID对应的布局文件。
+
+		把布局文件的节点都生成相应的View控件添加到视图容器中生成了UI布局视图。
+
+		布局视图生成后回调Activity实现的Callback接口的onContentChanged函数通知Activity。
+
+	5、创建ViewRoot对象
+
+		创建UI布局视图后开始激活Activity，调用ActivityThread的成员函数handleResumeActivity。
+
+		handleLaunchActivity-->handleResumeActivity
+
+		首先回调Activity的onResume函数，handleResumeActivity-->performResumeActivity-->mInstrumentation.callActivityOnResume
+
+		然后把上面创建的DecorView保存到Activity中
+
+		最后把DecorView和窗口布局信息传给LocalWindowManager的addView请求创建ViewRoot对象。
+
+		LocalWindowManager中转给WindowManagerImpl的addView函数，最终由WindowManagerImpl创建ViewRoot对象。
+
+		WindowManagerImpl把ViewRoot、DecorView以及对应的WindowManager.LayoutParams分别保存在mRoots、mViews和mParams数组中。
+
+	6、在ViewRoot中保存DecorView和窗口布局参数信息
+
+		WindowManagerImpl把DecorView和WindowManager.LayoutParams传给ViewRoot的setView函数。
+
+		将DecorView和这个WindowManager.LayoutParams以及变量panelParentView所描述的一个父应用程序窗视图对象，保存在ViewRoot内部
+
+	7、发送刷新UI消息及通知WMS为Actvity创建WindowState对象
+
+		ViewRoot成员函数setView将成员变量mAdded的值设置为true，表示当前正在处理的一个ViewRoot对象已经关联好一个View对象了。
+
+		调用ViewRoot类的另外一个成员函数requestLayout来请求对应用程序窗口视图的UI作第一次布局。
+
+		调用一个类型为Session的Binder代理对象的成员函数add来请求WindowManagerService增加一个WindowState对象，
+		以便可以用来描述当前正在处理的一个ViewRoot所关联的一个应用程序窗口。
+
+
+5、Android应用程序窗口（Activity）与WindowManagerService服务的连接过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8275938
+
+	当一个应用程序进程在启动第一个Activity组件的时候，它便会打开一个到WindowManagerService服务的连接，
+	这个连接以应用程序进程从WindowManagerService服务处获得一个实现了IWindowSession接口的Session代理对象来标志。
+
+	Session -继承-> IWindowSession.Stub -实现-> IWindowSession，
+
+	当应用程序进程启动第一个Activity组件的时候，它就会请求WindowManagerService服务发送一个建立连接的Binder进程间通信请求。
+	WindowManagerService就会在内部创建一个类型为Session的Binder本地对象，并且将它返回封装在
+	IWindowSession接口代理对象(IWindowSession.Stub.Proxy)中，代理对象保存在ViewRoot类的静态成员变量sWindowSession中。
+
+	ViewRoot构造函数 -> getWindowSession -> WMS的Binder代理对象的openSession 函数，返回Session的Binder本地代象，
+	用Session的Binder本地代象生成一个IWindowSession接口代理对象(IWindowSession.Stub.Proxy)，保存在sWindowSession中。
+
+	从这里就可以看出，Session的Binder远程代理代象，是在第一个Activity组件启动的时候获得的。static IWindowSession sWindowSession; 
+
+	Session类作用：
+
+		1. 在Activity组件的启动过程中，调用这个IWindowSession接口的成员函数add可以将一个关联的W对象传递到WindowManagerService服务，
+		以便WindowManagerService服务可以为该Activity组件创建一个WindowState对象。
+
+        	2. 在Activity组件的销毁过程中，调用这个IWindowSession接口的成员函数remove来请求WindowManagerService服务移除之前为
+		该Activity组件所创建的一个WindowState对象。
+
+        	3. 在Activity组件的运行过程中，调用这个IWindowSession接口的成员函数relayout来请求WindowManagerService服务来对该
+		Activity组件的UI进行布局，以便该Activity组件的UI可以正确地显示在屏幕中。
+
+	每一个应用程序进程在WindowManagerService服务内部都有一个类型为Session的Binder本地对象，用来它与WindowManagerService服务之间的连接。
+
+	在应用程序进程这一侧，每一个Activity组件都关联一个实现了IWindow接口的W对象，这个W对象在Activity组件的视图对象创建完成之后，
+	就会通过前面所获得一个Session代理对象来传递给WindowManagerService服务，而WindowManagerService服务接收到这个W对象之后，
+	就会在内部创建一个WindowState对象来描述与该W对象所关联的Activity组件的窗口状态，以后就通过这个W对象来控制对应的Activity的窗口状态。
+
+	W -继承-> IWindow.Stub -实现-> IWindow，W是在ViewRoot的造函数中创建的，并保存在内部。
+
+	W类的作用：
+
+		1. 当一个Activity组件的窗口的大小发生改变后，WindowManagerService服务就会调用这个IWindow接口的成员函数resized来通知该
+		Activity组件，它的大小发生改变了。
+
+        	2. 当一个Activity组件的窗口的可见性发生改变后，WindowManagerService服务就会调用这个IWindow接口的成员函数
+		dispatchAppVisibility来通知该Activity组件，它的可见性发生改变了。
+
+        	3. 当一个Activity组件的窗口获得或者失去焦点之后，WindowManagerService服务就会调用这个IWindow接口的成员函数
+		windowFoucusChanged来通知该Activity组件，它的焦点发生改变了。
+
+	每一个Activity组件在ActivityManagerService服务内部，都对应有一个ActivityRecord对象，是Activity组件启动的过程中创建的，
+	用来描述Activity组件的运行状态
+
+	Activity组件在WindowManagerService服务和ActivityManagerService服务之间的连接是通过一个AppWindowToken对象来描述的。
+
+	ActivityRecord -继承-> IApplicationToken.Stub -实现-> IApplicationToken
+
+	AppWindowToken -继承-> WindowToken 
+
+	AppWindowToken保存了ActivityRecord对象所实现的IApplicationToken接口。
+	WindowState保存了AppWindowToken对象和W代理对象。
+	它们之间的保存过程如下：
+
+		1、AMS创建ActivityRecord之后，用ActivityRecord实现的IApplicationToken接口作为参数，请求WMS在内部创建AppWindowToken对象，
+		把IApplicationToken接口保存在AppWindowToken内部。
+
+		2、AMS把ActivityRecord传给应用程序之后，ViewRoot同时把W和ActivityRecord传给WMS,请求在内部创建WindowState对象。
+
+		3、WMS先用ActivityRecord实现的IApplicationToken接口找到对应的AppWindowToken对象，然后把W代理对象和AppWindowToken对象做参数，
+		创建一个WindowState对象，并且把W代理对象和AppWindowToken保存在其内部。
+
+	AppWindowToken用来标记一个应用程序类型的窗口，而WindowToken类用来标志一个窗口(如输入法窗口或者壁纸窗口类型)同时又包括应用程序窗口。
+
+	WindowToken类有两个成员变量token和appWindowToken：
+
+		当WindowToken类是用来描述Activity组件窗口的时候，它的成员变量token指向的就是用来描述该Activity组件的一个ActivityRecord对象
+		所实现的一个IBinder接口，而成员变量appWindowToken指向的就是其子类AppWindowToken对象。
+
+		当WindowToken类是用来描述非Activity组件窗口的时候，它的成员变量appWindowToken的值就会等于null。
+
+	每一个Activity组件，在ActivityManagerService服务内部都有一个对应的ActivityRecord对象，
+	并且在WindowManagerService服务内部关联有一个AppWindowToken对象。
+
+	
+6、Android应用程序窗口（Activity）的绘图表面（Surface）的创建过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8303098
+
+	每一个在C++层实现的应用程序窗口都需要有一个绘图表面，然后才可以将自己的UI表现出来。
+
+	这个绘图表面是需要由应用程序进程请求SurfaceFlinger服务来创建的，在SurfaceFlinger服务内部使用一个Layer对象来描述，
+	Layer内有一个实现了ISurface接口的Binder本地对象(SurfaceLayer)。有了这个实现了ISurface接口的Binder代理对象之后，
+	在C++层实现的应用程序窗口就可以请求SurfaceFlinger服务分配图形缓冲区以及渲染已经填充好UI数据的图形缓冲区了。	
+
+	在应用程序进程这一侧，每一个Java层的Surface都对应有一个C++层的Surface对象，并且后者的地址值保存在前者的成员变量mNativeSurface中。
+
+	在WindowManagerService服务这一侧，每一个Java层的Surface都对应有一个C++层的SurfaceControl对象，
+	并且后者的地址值保存在前者的成员变量mSurfaceControl中。
+
+	应用程序进程和WMS服务中的两个Surface对象都是用来操作位于SurfaceFlinger服务中的同一个Layer对象的，不过，它们的作用和操作方式却不一样：
+
+		应用程序进程这一侧的Surface对象负责绘制应用程序窗口的UI，即往应用程序窗口的图形缓冲区填充UI数据，
+		而位于WindowManagerService服务这一侧的Surface对象负责设置应用程序窗口的属性，例如位置、大小等属性。
+
+		它们的操作方式分别是通过C++层的Surface对象和SurfaceControl对象来完成的，之所以会有这样的区别，是因为绘制应用程序窗口是独立的，
+		由应用程序进程来完即可，而设置应用程序窗口的属性却需要全局考虑，即需要由WindowManagerService服务来统筹安排，例如，
+		一个应用程序窗口的Z轴坐标大小要考虑它到的窗口类型以及它与系统中的其它窗口的关系。
+
+	应用程序进程的Surface的创建：
+
+		应用程序进程的Surface对象是保存在ViewRoot(ViewRootImpl)中。
+
+		private final Surface mSurface = new Surface();创建时用final修饰。
+
+	当ViewRoot对象的成员函数requestLayout来请求对其UI进行布局以及显示的时候，如果WMS服务中的绘图表面尚未创建，
+	requestLayout就会请求WindowManagerService服务来创建WMS服务中的绘图表面。
+
+	WMS服务中Surface的创建：
+
+		WMS服务中Surface对象是通过new Surface(...)的形式创建的。
+
+		Surface类有三个成员变量mSurfaceControl、mCanvas和mName，它们的类型分别是int、Canvas和String，其中，
+		mSurfaceControl保存的是在C++层的一个SurfaceControl对象的地址值，mCanvas用来描述一块类型为CompatibleCanvas的画布，
+		mName用来描述当前正在创建的一个绘图表面的名称。
+
+		在构造函数中初始化了mCanvas和mName。
+
+		Surface类的构造函数是通过调用另外一个成员函数init来创建与成员变量mSurfaceControl所关联的C++层的SurfaceControl对象的。
+
+		init是一个native方法，进入到C++层：
+
+			SurfaceComposerClient对象可以用来请求SurfaceFlinger服务为应用程序窗口创建绘图表面，即创建一个Layer对象。
+
+			首先将Java层的SurfaceSession对象的成员变量mClient转换成一个SurfaceComposerClient对象，
+			然后再调用这个SurfaceComposerClient对象的成员函数createSurface来请求SurfaceFlinger服务创建一个Layer对象。
+
+			将Layer对象内部的一个实现了ISurface接口的SurfaceLayer Binder对象封装在C++层的一个SurfaceControl对象中。
+
+			最后将SurfaceControl的地址值保存在WMS服务中Surface对象的成员变量mSurfaceControl中。
+
+	WMS服务中Surface创建完成后，把Surface的内容放入Parcel对象中，然后应用程序进程的Surface通过readFromParcel方法读取它的内容。
+
+	readFromParcel是个native方法，进入C++层，在C++层中创建C++层的Surface对象
+
+	C++层的Surface的创建：
+
+		首先C++层用SurfaceLayer对象创建了一个Surface实例对象，将SurfaceLayer封装在Surface对象中。
+
+		然后将C++层的Surface对象的地址保存在应用程序进程的Surface对象的成员变量mNativeSurface中。
+
+	通过这个过程我们就可以知道：
+
+       		1. 每一个应用程序窗口都对应有两个Java层的Surface对象，其中一个是在WindowManagerService服务这一侧创建的，
+		而另外一个是在应用程序进程这一侧创建的。
+
+       		2. 在WindowManagerService服务这一侧创建的Java层的Surface对象在C++层关联有一个SurfaceControl对象，用来设置应用窗口的属性，
+		例如，大小和位置等。
+
+       		3. 在应用程序进程这一侧创建的Java层的Surface对象在C++层关联有一个Surface对象，用来绘制应用程序窗品的UI。
+
+
+7、Android应用程序窗口（Activity）的测量（Measure）、布局（Layout）和绘制（Draw）过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8372924
+
+	Android应用程序窗口请求SurfaceFlinger服务创建了一个绘图表面之后，就可以接着请求为该绘图表面创建图形缓冲区，
+	而当Android应用程序窗口往这些图形缓冲区填充好UI数据之后，就可以请求SurfaceFlinger服务将它们渲染到硬件帧缓冲区中去，
+	这样我们就可以看到应用程序窗口的UI了。
+
+	使用C++来开发的开机动画应用程序bootanimation，它是通过OpenGL提供的API来绘制UI的。对于使用Java来开发的Android应用程序来说，
+	它们一般是使用Skia图形库提供的API来绘制UI的。
+
+	在Skia图库中，所有的UI都是绘制在画布（Canvas）上的，因此，Android应用程序窗口需要将它的图形缓冲区封装在一块画布里面，
+	然后才可以使用Skia库提供的API来绘制UI。
+
+	Android应用程序窗口的顶层视图是一个类型为DecorView的UI元素，这个顶层视图最终是由ViewRoot类的成员函数performTraversals来启动
+	测量、布局和绘制操作的，这三个操作分别由DecorView类的成员函数measure和layout以及ViewRoot类的成员函数draw来实现的。
+
+	请求绘制当前视图的UI是通过调用View类的成员变量mParent所描述的一个ViewParent接口的成员函数invalidateChild来实现的。
+	前面我们假设当前视图是DecoreView的视图，它的成员变量mParent指向的是与其所关联的一个ViewRoot对象。因此，
+	绘制当前视图的UI的操作实际上是通过调用ViewRoot类的成员函数invalidateChild来实现的。
+
+	注意，在调用ViewRoot类的成员函数invalidateChild的来绘制当前视图的UI之前，
+	会将当前视图即将要绘制的区域记录在View类的成员变量mAttachInfo所描述的一个AttachInfo对象的成员变量mTmpInvalRect中。
+
+	ViewRoot类的成员函数invalidateChild设置好当前正在处理的应用程序窗口下一次所要重新绘制的总区域之后，
+	就调用ViewRoot类的成员函数scheduleTraversals来向UI线程的消息队列发送一个DO_TRAVERSAL消息。
+
+	当应用程序窗口的绘图表面的内存类型等于WindowManager.LayoutParams.MEMORY_TYPE_GPU时，那么就表示它需要使用OpenGL接口来绘制UI，
+	以便可以利用GPU来绘制UI。
+
+	在绘制UI之前，首先会调用用来描述应用程序窗口的绘图表面的一个Surface对象成员函数lockCanvas来获得一块画布canvas。有了这块画布之后，
+	接下来就可以调用DecorView的顶层视图的成员函数draw来在上面绘制应用程序窗口的UI了。
+
+	每一个Java层的Surface对象内部都有一块画布，这块画布是通过它的成员变量mCanvas所指向的一个Java层的CompatibleCanvas对象来描述的。
+	Java层的CompatibleCanvas是从Canvas类继承下来的。
+
+	Surface对象成员函数lockCanvas会调用一个lockCanvasNative本地方法，进入C++层：
+
+		首先用getSurface来获得对应的C++层的Surface对象。
+
+		然后调用C++层的Surface对象成员函数lock来获得一个图形缓冲区。
+
+		然后再获得参数Java层应用程序进程的Surface对象的内部的一块类型为CompatibleCanvas的画布。
+
+		Canvas类有一个成员变量mNativeCanvas，它指向的是一个C++层的SkCanvas对象，这个C++层的SkCanvas对象描述的就是
+		Skia图形库绘制应用程序窗口UI时所需要的画布。
+
+		再获得Java层的CompatibleCanvas对象的内部nativeCanvas所指向的C++层一块类型为SkCanvas的画布。
+
+		最后将前面所获得的图形缓冲区的地址封装到SkCanvas内部去，这是通过调用它的成员函数setPixels来实现的。
+	
+	应用程序窗口所使用的图形缓冲区一般都是在HAL模块Gralloc中分配的。
+
+	绘制完成之后，应用程序窗口的UI就都体现在前面所创建的画布canvas上了，因此，这时候就需要将它交给SurfaceFlinger服务来渲染，
+	这是通过调用用来描述应用程序窗口的绘图表面的一个Surface对象的成员函数unlockCanvasAndPost来实现的。
+
+	调用Java层应用程序进程的Surface类的成员函数unlockCanvasAndPost来请求SurfaceFlinger服务渲染这块画布里面所包含的一个图形缓冲区。
+
+	Android应用程序窗口UI首先是使用Skia图形库API来绘制在一块画布上，实际地是绘制在这块画布里面的一个图形缓冲区中，
+	这个图形缓冲区最终会被交给SurfaceFlinger服务，而SurfaceFlinger服务再使用OpenGL图形库API来将这个图形缓冲区渲染到硬件帧缓冲区中。

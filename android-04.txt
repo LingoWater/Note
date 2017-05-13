@@ -1,0 +1,200 @@
+1、AsyncTask 为什么java已经有线程池的实现了，还要继续使用AsyncTask，AsyncTask相对于java自带的线程池的好处
+
+	https://www.zhihu.com/question/42933377/answer/95133276
+	https://zhidao.baidu.com/question/2055823385694875867.html
+	http://bbs.51cto.com/thread-1114378-1-1.html
+
+	AsyncTask直接继承于Object类，位置为android.os.AsyncTask。
+
+	AsyncTask是android提供的轻量级的异步类,可以直接继承AsyncTask
+
+	要使用AsyncTask工作我们要提供三个泛型参数，并重载几个方法(至少重载一个)。
+
+	AsyncTask被设计为Thread和Handler的辅助类，并不构成通用的线程框架。
+
+	1.AsyncTask简化了对线程池的使用
+	2.设计给执行短耗时的任务(最多几秒钟)
+	3.设计了工作线程方法和UI线程方法，很好地实现了线程间通信
+	4.可以实现单任务顺序执行和多任务并行执行
+
+	缺点：适用轻量级、短耗时任务
+
+2、说一下MVC以及其在Android中的应用
+
+	http://blog.csdn.net/u011494050/article/details/24556051
+	http://blog.csdn.net/lmj623565791/article/details/46596109
+
+	M是Model模型的意思
+	V是View视图的啥意思
+	C是Controller控制器的意思
+
+	MVC组合是一种常见的设计模式，把视图显示、业务控制处理和数据模型分开，降低程序的耦合性。
+
+	Activity应用中Layout作为View，Activity实例作为Controller，可以使用Service作为Model
+
+	不过默认的实现Activity和Layout的联系太紧密，粘性太强，可以把Activity和Layout作为View，增加一个Presenter，即MVP组合
+
+	在android界面应用中MVP显得更解耦，划分更清晰。P是Presenter
+
+	android中广播、服务和通知管理器很巧妙的也组成了一个MVC组合，他们是一个非常灵活解耦的组合，是一个很清晰的MVC组合
+
+	在Android SDK中使用MVC模式的组件非常多。例如，所有的列表控制(ListView, Spinner,GridView等)都采用MVC模式与数据交互。
+	在Android中MVC中的V就代表这些组件，而M则代表各种数据源以及操作数据库的库。C则代表Adapter类。
+
+	MVC中是允许Model和View进行交互的，而MVP中Model与View之间的交互由Presenter完成。
+
+	Presenter与View之间的交互是通过接口实现的
+
+
+3、假如viewpager里面的每一页都有有很大数据量的内容，那么在快速的左右滑动时，如果出现了内存被回收的情况，如何处理 假如出现了OOM，怎么处理
+
+	https://www.zhihu.com/question/36529858
+	http://www.th7.cn/Program/Android/201412/333619.shtml
+
+	合理的情况下可以增加页缓存的方式来减小内存被回收的情况
+
+	可以把大数据脱离pager单独缓存
+
+	可以把数据分页显示，把数据分页，限页载入内存
+
+	OOM优化：
+
+	先显示pager，延迟加载数据，利用滑动切换间隙时间控制好数据加载、释放和任务取消
+
+	捕获异常释放优先级低的对象内存，压缩数据大小，对象内存重复利用，减少对象实例创建
+
+
+4、同上情况，使用Fragment，又当如何?与viewpager有什么区别
+
+	https://www.zhihu.com/question/36529858
+	http://www.th7.cn/Program/Android/201412/333619.shtml
+
+
+5、在ListView的每个item中如果可能出现的view都不一样，如何处理?动态获取view种类数量的话是不是就不能使用viewHolder进行优化?
+	固定显示view如果不存在该种view就不显示的方法是否太耗内存
+
+	http://blog.csdn.net/kent_todo/article/details/41943935
+
+	重写getViewTypeCount()和getItemViewType()两个方法设置Item类型数量和获取Item类型
+
+	可以根据ViewType来设置不同的ViewHolder
+
+	如果复用ConverView和使用ViewHolder的话，View对象的实例数量基本稳定不变，如果每个item不需显示的View数量不多，只需把View绑定的数据清除
+	，仅一个空实例一般不会太耗内存
+
+
+6、假设把一个ActivityB向右滑动可以回到上一个ActivityA，B渐渐透明，A渐渐清晰，要怎么编写页面?
+	说说你对android:theme的理解，说说你对alpha值的理解
+
+	http://blog.csdn.net/xiaanming/article/details/20934541
+	http://blog.csdn.net/meijian531161724/article/details/50763931
+	http://blog.csdn.net/jxxfzgy/article/details/44266163
+	http://bbs.csdn.net/topics/390899161
+
+	自定义一个ViewGroup名字为ScrollLayout，处理触摸事件实现滑动向右移动ScrollLayout的子视图内容
+	
+	根据滑动距离和屏幕宽度的百分比绘制背景透明度
+
+	把DecoView的子布局RootView中嵌入ScrollLayout，并把自定义ScrollLayout作为RootView所有子View的父View
+
+	样式是指为 View 或窗口指定外观和格式的属性集合
+
+	主题是指对整个Activity或应用而不是对单个View应用的样式。以主题形式应用样式时，Activity或应用中的每个视图都将应用其支持的每个样式属性。
+
+	theme是一种主题，包括一系列的色系、字体大小、界面元素外观定义，甚至是界面元素的摆放格局规划
+
+	alpha用来设置透明度
+
+7、详细展开说一下所有LaunchMode的应用场景
+　　假如A-》B-》C，想让C后退直接到A，使用什么样的intentflag?
+
+	1、设置B为singleInstance LaunchMode
+	2、设置finishOnTaskLaunch（离开任务返回时） 属性为true
+
+　　假如A-》B-》C，C使用singleTask，C后退，后退到什么地方呢?
+	
+	A和B不同task，且B为singleInstance 时返回A，否则返回B
+
+
+8、在全屏显示高清大图的时候，网速慢的情况下如何显示?渐进式显示是怎么做到的?如果想显示下载进度圈圈，该如何实现?
+
+	http://blog.csdn.net/sanjay_f/article/details/44888763
+
+	把小图等比例放大先显示，在加载大图，加载完成显示大图
+
+	或者使用渐进式显示
+
+	渐进式使用的是Progressive JPEG格式图片，可以把图片转换成Progressive JPEG格式保存
+
+	默认类型Baseline JPEG，从上到下显示图片
+
+	Progressive JPEG先得到图片轮廓，随着扫描次数的增加，图片越来越清晰
+
+
+9、说一下HandlerThread
+
+	http://blog.csdn.net/iispring/article/details/47320407
+
+	HandlerThread类可以很方便地创建一个带有looper的新线程。该looper可以被用来创建hanlder对象。需要注意的是start方法必须要调用。
+
+
+10、基于事件监听、基于事件回调 假如一个touch事件发生，那是监听器先收到还是onTouch函数先收到
+
+	http://blog.csdn.net/jiuweitianhu_12345/article/details/52947665
+
+	对于Android提供的事件处理，基于监听的事件处理更占优势，事件源和事件监听器是分开的，降低了耦合性，提高了扩展性。
+	在事件处理中基于监听的事件监听器会优先被执行。
+
+	基于监听的事件处理高于基于回调的事件处理。
+
+
+11、了不了解Scrollview scrollview和ListView有什么相似点 有什么不同 那如果这两个是继承关系 那应该是谁继承谁?
+
+	ScrollView extends FrameLayout
+
+	ListView extends AbsListView
+
+	AbsListView extends AdapterView<ListAdapter>
+
+	都是可以滑动的View，有更多内容可以通过滑动得到显示
+
+
+12、dp sp px各自的应用场景是什么 换算关系是什么 使用sp的时候如果调整系统字体，显示字体会跟着调整吗?
+
+	PPI = Pixels per inch，每英寸上的像素数,即 "像素密度"
+
+	px = dp*ppi/160
+	dp = px / (ppi / 160)
+	px = sp*ppi/160
+	sp = px / (ppi / 160)
+
+	防止字体跟着系统字体变化
+	@Override
+	public Resources getResources() {
+		Resources res = super.getResources();
+		Configuration config = new Configuration();
+		config.setToDefaults();
+		config.fontScale = (float) 1.0;
+		res.updateConfiguration(config, res.getDisplayMetrics());
+		return res;
+	}
+
+
+13、gallery为什么被废弃?为什么Google推荐使用viewpager代替gallery呢?有什么改进?
+
+	https://zhidao.baidu.com/question/646807620769798645.html
+
+	android后版本推出了ViewPager，google官方推荐使用pageview代替gallery
+
+	gallery耗内存，并且ViewPager可嵌入Fragment
+
+
+14、handler.postAtTime不是延时post么 那handler怎么延时处理Message
+
+	http://blog.csdn.net/beixiaozhang/article/details/52975733
+
+	不管发送的消息有没有延迟，都会先插入队列中，如果有延迟的话，looper不会立刻取出消息，时间到后才会取出消息，也就是延迟指延迟处理，
+	不是延迟发送。
+
+
+15、反射

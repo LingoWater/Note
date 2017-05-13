@@ -1,0 +1,56 @@
+一、android的权限分级,Android的permission与UID/GID的mapping
+
+	https://www.nowcoder.com/courses/11/4/53
+
+	android权限等级分为：Normal、Dangerous、Signature、SignatureOrSystem
+
+	注册权限的等级可以通过android:protectionLevel="dangerous"属性指定
+
+	系统定义权限的路径:frameworks/base/core/res/AndroidManifest.xml
+
+	android应用(UID)是不拥有底层OS(Linux)定义的权限的
+
+	android要使用底层OS的权限(如文件读写)，需要在定义权限时把GID映射到底层OS相应权限组的GID
+
+	只有获得root权限，才可以在自定义权限时把GID映射到底层OS相应权限组的GID
+
+
+二、android运行时权限
+
+	https://www.nowcoder.com/courses/11/4/58
+
+	MR2(4.3)开始引入AppOps(基于AppOps Service)
+
+	android在4.3代码中就已经引入基于运行时的权限AppOps，只不过是hide的。到6.0(API23)开始真正执行。
+
+
+三、应用安装到SDCard防止Export
+
+	https://www.nowcoder.com/courses/11/4/59
+
+	应用安装至SD卡的隐藏文件夹(.Android_Secure)
+
+	通过加密实现防止Export，禁止普通用户(没有root权限)访问应用目录
+
+	把安装再sd卡中的路径mount到一个只有root权限的路径，这样就可以有两个路径可以访问到，然后再把sd卡的路径关闭，使得只有有root权限的路径
+
+
+四、外部存储卡
+
+	https://www.nowcoder.com/courses/11/4/60
+
+	外置外部存储卡、内置外部存储卡、双外部存储卡
+
+	外置外部存储卡(SD卡Real external Storage)，可自己扩展，
+
+	内置外部存储卡(虚拟SD卡Emulated external Storage)，不可扩展，不能和Data分区共享容量(它分大，Data就分的小；它分小，Data就分得大)
+
+	后来又发展了FUSE based Emulated external Storage(FUSE based虚拟存储卡)，可以与Data分区共享容量，不支持USB Mass Stroage，仅支持MTP
+
+	双外部存储卡，有外置外部存储卡(SD卡) 和 内置外部存储卡(虚拟SD卡)
+
+	有两个外部存储卡时，一个被指定为Primary External Storage，一个被指定为Secondary External Storage
+
+	普通应用只能访问Primary External Storage，/sdcard永远指向Primary External Storage/SDCard
+
+	只需要使用Environment.getExternalStorageDirectory()获取Primary External Storage，不需关心Primary External Storage是Emulated或是Real

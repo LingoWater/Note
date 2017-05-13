@@ -1,0 +1,11 @@
+一、意外用rm命令删除了工作目录中的文件，用git checkout -- file(或*表示所有文件或目录)从本地版本仓库checkout出来即可恢复
+
+	如：git checkout -- * 就可将当前目录下的所有文件和目录从本地仓库恢复出来
+
+
+二、执行git remote add Learn https://github.com/blqq305/Learn创建(关联)了远程仓库Learn后，执行git pull Learn master把远程仓库合并到本地仓库，
+	报错：fatal: refusing to merge unrelated histories
+
+	修改成执行：git pull Learn master --allow-unrelated-histories解决问题，即后面需要添加“--allow-unrelated-histories”
+
+

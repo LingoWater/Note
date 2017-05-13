@@ -1,0 +1,9 @@
+https://www.nowcoder.com/courses/11/6/3
+
+jni目录下存放.c和.cpp文件，jni目录和src/java和res目录同级
+
+jin目录下的Android.mk文件，用来把.c/.cpp文件编译成.so文件时需要用到的，默认情况下不需要修改
+
+cd到工程目录下使用ndk-build命令编译生成.so文件
+
+ndk-build后在工程目录下多出libs和obj两个文件夹，libs下的.so文件就是相应的.so文件

@@ -1,0 +1,14 @@
+https://git-scm.com/book/zh/v2/起步-关于版本控制
+http://www.tuicool.com/articles/yEvYRju
+
+
+Git 支持多种数据传输协议。 上面的例子使用的是 https:// 协议，不过你也可以使用 git:// 协议或者使用 SSH 传输协议，
+比如 user@server:path/to/repo.git
+
+获取已有项目：git clone + 项目地址
+
+	如：git clone https:android.googlesource.com/platform/frameworks/volley
+
+	$ git clone https://github.com/libgit2/libgit2 mylibgit 自定义本地名称为mylibgit 
+
+	

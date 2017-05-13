@@ -1,0 +1,229 @@
+1、JVM内存分区
+
+	http://blog.csdn.net/yinghan2005/article/details/5209182
+	https://my.oschina.net/mup/blog/355947
+	http://blog.csdn.net/zhangren07/article/details/6270842
+
+	堆区:     （-Xmx和-Xms控制）
+	1.存储数组以及对象，每个对象都包含一个与之对应的class的信息。(class的目的是得到操作指令)
+	2.jvm只有一个堆区(heap)被所有线程共享
+
+	java栈区:
+	1.每个线程包含一个栈区，栈中只保存原始类型数据和对象引用(不是对象)
+	2.每个栈中的数据(原始类型和对象引用)都是私有的，其他栈不能访问。
+	3.栈分为3个部分：基本类型变量区、执行环境上下文、操作指令区(存放操作指令)。
+
+	java栈中存放的是一个个栈帧。栈帧中存放的是局部变量表、操作数栈、指向运行时常量池的引用、方法返回值地址和附加信息。
+
+	线程执行一个方法时就会创建一个栈与之对应的帧并压入栈中，方法执行结束，栈帧出栈。
+
+	局部变量表：这里面存放的是方法中的局部变量（方法中声明的非静态变量以及形参和returnAddress类型）。
+	局部变量表的大小在编译时期就完成分配，方法运行期间大小不会改变。
+
+	方法区:      （对应JVM内存配置中的-PermSize等）
+	1.又叫静态区，被所有的线程共享。包含所有的class和static变量。
+	2.方法区中包含的都是在整个程序中永远唯一的元素，如class，static变量。
+
+	程序计数器:
+	1.程序计数器是当前线程所执行字节码的行号指示器，所以它是私有的。
+	2.如果线程执行的是非native方法，则程序计数器中保存的是当前需要执行的指令的地址；如果线程执行的是native方法，
+	则程序计数器中的值是undefined。
+	3.程序计数器是不会发生内存溢出现象(OutOfMemory)的。
+
+	本地方法栈:
+	当JVM线程调用了本地方法， 则会跳入本地方法栈。本地方法返回后可能再次跳回java方法栈。
+
+
+2、GC
+
+	http://www.cnblogs.com/cloudwind/archive/2012/08/22/2651208.html
+	http://www.cnblogs.com/ityouknow/p/5614961.html
+
+	垃圾收集 Garbage Collection 通常被称为“GC”
+
+	从GC Roots开始向下搜索，搜索所走过的路径称为引用链。当一个对象到GC Roots没有任何引用链相连时，称为不可达对象。
+
+	GC将负责回收所有"不可达"对象的内存空间。
+
+	对象存活判断：引用计数（无法解决对象相互循环引用的问题）、可达性分析
+
+	为了保证GC能够在不同平台实现的问题，Java规范对GC的很多行为都没有进行严格的规定。例如，对于采用什么类型的回收算法、什么时候进行回收等。
+
+	不同的JVM的实现者往往有不同的实现算法。这也给Java程序员的开发带来行多不确定性。
+
+	如果GC运行时间太短，则可能对象回收率太低，这意味着还有很多应该回收的对象没有被回收，仍然占用大量内存。
+
+	增量式GC就是通过一定的回收算法，把一个长时间的中断，划分为很多个小的中断，通过这种方式减少GC对用户程序的影响。
+
+	JVM保证调用finalize函数之前，这个对象是不可达的，但是JVM不保证这个函数一定会被调用。另外，规范还保证finalize函数最多运行一次。
+
+	finalize用于一些不容易控制、并且非常重要资源的释放，例如一些I/O的操作，数据的连接。
+
+	程序员应该以通过程序本身管理（包括释放）这些资源为主，以finalize函数释放资源方式为辅，形成一种双保险的管理机制。
+
+	通过使用SoftReference、WeakReference和 PhantomReference引用类，程序员可以在一定程度与GC进行交互，以便改善GC的工作效率。
+
+	程序计数器、java栈、本地方法栈都是随线程而生随线程而灭，栈帧随着方法的进入和退出做入栈和出栈操作，实现了自动的内存清理
+
+	内存垃圾回收主要集中于 java 堆和方法区中
+
+	垃圾收集算法：标记 -清除算法、复制算法、标记-压缩算法、分代收集算法
+
+	垃圾收集器：Serial收集器(串行收集器)、CMS收集器(并行)、G1收集器(并行)
+
+	ANDROID上Dalvik虚拟机使用Mark-Sweep(标记 -清除算法)算法来进行垃圾收集。
+
+
+
+3、JAVA多线程之volatile 与 synchronized 的比较 
+
+	http://www.cnblogs.com/hapjin/p/5492880.html
+	http://www.cnblogs.com/gaojunguangblog/p/4949114.html
+	http://www.cnblogs.com/tf-Y/p/5266710.html
+	http://www.cnblogs.com/mengheng/p/3495379.html
+
+	①每个线程都有一个自己的本地内存空间--线程栈空间???线程执行时，先把变量从主内存读取到线程自己的本地内存空间，然后再对该变量进行操作
+
+	②对该变量操作完后，在某个时间再把变量刷新回主内存
+
+	在有些情况下会导致变量在多线程间变得不可见，如在JVM 设置成 -server模式运行程序时，线程会一直在私有堆栈中读取变量，
+	所以即使主存中该变量的值已经改变了，线程中也得不到最新的值
+
+	volatile关键字的作用是：使变量在多个线程间可见（可见性）
+
+	volatile强制线程每次从主内存中读取变量，而不是从线程的私有内存中读取变量，从而保证了数据的可见性
+
+	对使用volatile关键字修饰的变量的操作不具有原子性，所以volatile不能保证线程安全
+
+	volatile修饰的变量会禁止指令被重排序，使得其符合happen-before规则
+
+	volatile只能修饰变量。synchronized可修饰变量、方法和类
+
+	volatile只能保证数据的可见性，不能用来同步，因为多个线程并发访问volatile修饰的变量不会阻塞
+
+	synchronized不仅保证可见性，而且还保证原子性，因为，只有获得了锁的线程才能进入临界区，从而保证临界区中的所有语句都全部执行。
+	多个线程争抢synchronized锁对象时，会出现阻塞
+
+	volatile和synchronized都符合happen-before规则，都会禁止指令被重排序
+
+	锁提供了两种主要特性：互斥（mutual exclusion） 和可见性（visibility）
+
+	volatile有可见性特征，没有互斥性特征。synchronized同时具有互斥和可见性特征
+
+	线程安全性包括两个方面，①可见性。②原子性。
+
+
+
+4、线程池的概念、好处、常见的线程池举例
+
+	http://baike.baidu.com/link?url=BBmJ87Q_yB5x3Q-8WaMdG5upirXzbyiEm0jfI9NPWn7XMtSZ_GoGkBf5YaEcLOsu46pHUZ2apU7MZ8MoP2QItOUI3wWzqfw7mYPr2ScELTuSH1R3cinGXxUpUZm44I_U
+	http://ifeve.com/thread-pools/
+	http://cuisuqiang.iteye.com/blog/2019372
+
+	Java通过Executors提供四种线程池，分别为：
+	newCachedThreadPool创建一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回收，则新建线程。
+	newFixedThreadPool 创建一个定长线程池，可控制线程最大并发数，超出的线程会在队列中等待。
+	newScheduledThreadPool 创建一个定长线程池，支持定时及周期性任务执行。
+	newSingleThreadExecutor 创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。
+
+5、Callable和Runnable的区别
+
+	http://blog.csdn.net/heyutao007/article/details/19072675
+
+	Runnable和Callable的区别是，
+	(1)Callable规定的方法是call(),Runnable规定的方法是run().
+	(2)Callable的任务执行后可返回值，而Runnable的任务是不能返回值得
+	(3)call方法可以抛出异常，run方法不可以
+	(4)运行Callable任务可以拿到一个Future对象，用来监视计算结果或取消任务。
+
+6、ConcurrentHashMap原理
+
+	http://www.cnblogs.com/ITtangtang/p/3948786.html
+
+	ConcurrentHashMap允许多个修改操作并发进行，其关键在于使用了锁分离技术。
+
+	ConcurrentHashMap内部使用段(Segment)来表示这些不同的部分，每个段其实就是一个小的hash table，它们有自己的锁。
+
+	只要多个修改操作发生在不同的段上，它们就可以并发进行。
+
+	有些方法需要跨段，比如size()和containsValue()，它们可能需要锁定整个表而而不仅仅是某个段，这需要按顺序锁定所有段，操作完毕后，
+	又按顺序释放所有段的锁。这里“按顺序”是很重要的，否则极有可能出现死锁
+
+
+7、jvm内部使用了什么数据结构以及循环引用，然后问道如果就要使用引用计数算法，怎么避免循环引用
+
+	http://www.oschina.net/question/257445_173492
+	https://www.zhihu.com/question/37216042
+
+	循环引用可以通过弱引用进行打破
+
+
+8、常用算法
+
+	http://blog.csdn.net/ygc87/article/details/7208082
+	http://www.csdn.net/article/2014-04-10/2819237-Top-10-Algorithms-for-Coding-Interview
+	http://www.importnew.com/16266.html
+	
+	快速排序
+	二分查找
+	二叉树
+	
+
+9、常用的数据结构
+
+	http://blog.csdn.net/u010947402/article/details/51878166
+
+	Java中有几种常用的数据结构，主要分为Collection和map两个主要接口，而程序中最终使用的数据结构是继承自这些接口的数据结构类。
+
+	Collection---->Collections                                                                                                          
+
+	Collection---->List----->(Vector \ ArryList \ LinkedList)                                                          
+
+	Collection---->Set------>(HashSet \ LinkedHashSet \ SortedSet)
+
+	Map----->SortedMap------>TreeMap
+
+	Map------>HashMap
+
+	Vector是基于数组（Array）的List，性能比数组差，是线程同步的(sychronized)的，这也是Vector和ArrayList 的一个的重要区别。
+
+	ArrayList同Vector一样是一个基于数组上的链表，但是不同的是ArrayList不是同步的，在性能上要比Vector好一些。
+
+	LinkedList不是基于数组的，所以不受数组性能的限制。它每一个节点（Node）都包含节点本身的数据（data）和 下一个节点的信息（nextNode）。
+	所以当对LinkedList做添加，删除动作的时候就不用像基于数组的ArrayList一样，必须进行大量的数据移动。只要更改nextNode的相关信息就可以实现
+
+	List总结：
+
+		所有的List中只能容纳单个不同类型的对象组成的表，而不是Key－Value键值对。例如：[ tom,1,c ]
+
+		所有的List中可以有相同的元素，例如Vector中可以有 [ tom,koo,too,koo ]
+
+		所有的List中可以有null元素，例如[ tom,null,1 ]
+
+     		基于Array的List（Vector，ArrayList）适合查询，而LinkedList 适合添加，删除操作
+
+	Set是不包含重复元素的Collection
+
+	HashSet的存储方式是把HashMap中的Key作为Set的对应存储项。看看 HashSet的add（Object obj）方法的实现就可以一目了然了。
+
+	SortedSet是有序的Set，通过SortedMap来实现的。
+
+	虽然Set同List都实现了Collection接口，但是Set则是在 HashMap的基础上来实现的。
+
+	Set总结：
+
+		（1）Set实现的基础是Map（HashMap）
+
+		（2）Set中的元素是不能重复的，如果使用add(Object obj)方法添加已经存在的对象，则会覆盖前面的对象
+
+	Map 是一种把键对象和值对象进行关联的容器，键对象不允许重复
+
+	TreeMap则是对键按序存放
+
+	一、几个常用类的区别 
+	1．ArrayList: 元素单个，效率高，多用于查询 
+	2．Vector: 元素单个，线程安全，多用于查询 
+	3．LinkedList:元素单个，多用于插入和删除 
+	4．HashMap: 元素成对，元素可为空 
+	5．HashTable: 元素成对，线程安全，元素不可为空 
+

@@ -1,0 +1,12 @@
+frameworks/base/core/java/android/view/ViewRoot.java
+out/target/common/obj/JAVA_LIBRARIES/framework_intermediates/src/core/java/android/view/IWindowSession.java
+frameworks/base/services/java/com/android/server/WindowManagerService.java
+frameworks/base/core/java/android/view/Surface.java
+frameworks/base/core/java/android/os/ServiceManager.java
+frameworks/base/core/java/android/os/ServiceManagerNative.java
+frameworks/base/services/java/com/android/server/SystemServer.java
+
+
+
+
+D:\soft\android-studio2.1.1\studio\gradle\gradle-2.14.1

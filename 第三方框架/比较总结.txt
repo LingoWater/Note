@@ -1,0 +1,10 @@
+一、Universal-ImageLoader 与 Picasso
+	https://www.nowcoder.com/courses/11/7/1
+
+	.都有高效的网络图片下载和缓存性能
+
+	.Universal-ImageLoader功能多，灵活使用配置
+
+	.Picasso使用复杂的图片压缩转换来尽可能的减少内存消耗
+
+	.在Adapter中需要取消已经不在视野范围的ImageView图片资源的加载，否则导致图片错误，Picasso已经解决了这个问题

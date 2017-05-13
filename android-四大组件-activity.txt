@@ -1,0 +1,620 @@
+http://www.cnblogs.com/pepcod/archive/2013/02/11/2937403.html
+http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html
+http://www.cnblogs.com/yuzhongzheng/p/5228393.html
+
+1、Activity
+
+	https://developer.android.com/guide/components/activities.html#StartingAnActivity
+
+	Activity 是一个应用组件，用户可与其提供的屏幕进行交互，以执行拨打电话、拍摄照片、发送电子邮件或查看地图等操作。
+
+	每个 Activity 都会获得一个用于绘制其用户界面的窗口。窗口通常会充满屏幕，但也可小于屏幕并浮动在其他窗口之上。
+
+	一般会指定应用中的某个 Activity 为“主”Activity，即首次启动应用时呈现给用户的那个 Activity。
+
+	Activity 因状态变化而收到的回调方法可能有若干种，每一种回调都会为您提供执行与该状态变化相应的特定操作的机会。 
+	例如，停止时，您的 Activity 应释放任何大型对象，例如网络或数据库连接。 当 Activity 恢复时，您可以重新获取所需资源，
+	并恢复执行中断的操作。 这些状态转变都是 Activity 生命周期的一部分。
+
+	您需要在子类中实现 Activity 在其生命周期的各种状态之间转变时系统调用的回调方法。 两个最重要的回调方法是：
+
+		onCreate()
+		您必须实现此方法。系统会在创建您的 Activity 时调用此方法。您应该在实现内初始化 Activity 的必需组件。 最重要的是，
+		您必须在此方法内调用 setContentView()，以定义 Activity 用户界面的布局。
+
+		onPause()
+		系统将此方法作为用户离开 Activity 的第一个信号（但并不总是意味着 Activity 会被销毁）进行调用。 
+		您通常应该在此方法内确认在当前用户会话结束后仍然有效的任何更改（因为用户可能不会返回）。
+
+	您还应使用几种其他生命周期回调方法，以便提供流畅的 Activity 间用户体验，以及处理导致您的 Activity 停止甚至被销毁的意外中断。 
+
+	Activity 的用户界面是由层级式视图 — 衍生自 View 类的对象 — 提供的。每个视图都控制 Activity 窗口内的特定矩形空间，
+	可对用户交互作出响应。 例如，视图可以是在用户触摸时启动某项操作的按钮。
+
+	“小部件”是提供按钮、文本字段、复选框或仅仅是一幅图像等屏幕视觉（交互式）元素的视图。
+
+	您必须在清单文件中声明您的 Activity，这样系统才能访问它。 android:name 属性是唯一必需的属性—它指定 Activity 的类名。应用一旦发布，
+	即不应更改此类名，否则，可能会破坏诸如应用快捷方式等一些功能
+
+	<activity> 元素还可指定各种 Intent 过滤器—使用 <intent-filter> 元素—以声明其他应用组件激活它的方法。
+
+	如果您打算让应用成为独立应用，不允许其他应用激活其 Activity，则您不需要任何其他 Intent 过滤器。 正如前例所示，
+	只应有一个 Activity 具有“主”操作和“launcher”类别。
+
+	如果您想让 Activity 对衍生自其他应用（以及您的自有应用）的隐式 Intent 作出响应，则必须为 Activity 定义其他 Intent 过滤器。
+	对于您想要作出响应的每一个 Intent 类型，您都必须加入相应的 <intent-filter>，其中包括一个 <action> 元素，
+	还可选择性地包括一个 <category> 元素和/或一个 <data> 元素。这些元素指定您的 Activity 可以响应的 Intent 类型。
+
+	Intent 对象会指定您想启动的具体 Activity 或描述您想执行的操作类型（系统会为您选择合适的 Activity，甚至是来自其他应用的 Activity）。
+	Intent 对象还可能携带少量供所启动 Activity 使用的数据。
+
+	您的应用可能还需要利用您的 Activity 数据执行某项操作，例如发送电子邮件、短信或状态更新。 在这种情况下，您的应用自身可能不具有
+	执行此类操作所需的 Activity，因此您可以改为利用设备上其他应用提供的 Activity 为您执行这些操作。 这便是 Intent 对象的真正价值所在。
+	如果有多个 Activity 可以处理 Intent，则用户可以选择要使用哪一个。
+
+	您可能需要从启动的 Activity 获得结果。请通过调用 startActivityForResult()（而非 startActivity()）来启动 Activity。
+	要想在随后收到后续 Activity 的结果，请实现 onActivityResult() 回调方法。 当后续 Activity 完成时，它会使用 Intent 向您的 
+	onActivityResult() 方法返回结果。
+
+	您可以通过调用 Activity 的 finish() 方法来结束该 Activity。您还可以通过调用 finishActivity() 结束您之前启动的另一个 Activity。
+
+	注：在大多数情况下，您不应使用这些方法显式结束 Activity。 Android 系统会为您管理 Activity 的生命周期，因此您无需结束自己的 Activity。
+	调用这些方法可能对预期的用户体验产生不良影响，因此只应在您确实不想让用户返回此 Activity 实例时使用。
+
+	通过实现回调方法管理 Activity 的生命周期对开发强大而又灵活的应用至关重要。 Activity 的生命周期会直接受到 Activity 与
+	其他 Activity、其任务及返回栈的关联性的影响。
+
+	Activity 基本上以三种状态存在：
+
+		继续：
+		此 Activity 位于屏幕前台并具有用户焦点。（有时也将此状态称作“运行中”。）
+
+		暂停：
+		另一个 Activity 位于屏幕前台并具有用户焦点，但此 Activity 仍可见。也就是说，另一个 Activity 显示在此 Activity 上方，
+		并且该 Activity 部分透明或未覆盖整个屏幕。 暂停的 Activity 处于完全活动状态（Activity 对象保留在内存中，它保留了所有状态和
+		成员信息，并与窗口管理器保持连接），但在内存极度不足的情况下，可能会被系统终止。
+
+		停止：
+		该 Activity 被另一个 Activity 完全遮盖（该 Activity 目前位于“后台”）。 已停止的 Activity 同样仍处于活动状态（Activity 对象
+		保留在内存中，它保留了所有状态和成员信息，但未与窗口管理器连接）。 不过，它对用户不再可见，在他处需要内存时可能会被系统终止。
+
+	如果 Activity 处于暂停或停止状态，系统可通过要求其结束（调用其 finish() 方法）或直接终止其进程，将其从内存中删除。
+	（将其结束或终止后）再次打开 Activity 时，必须重建。
+
+	注：您在实现这些生命周期方法时必须始终先调用超类实现，然后再执行任何操作。
+
+	您可以通过实现这些方法监控 Activity 生命周期中的三个嵌套循环：
+
+		1.Activity 的整个生命周期发生在 onCreate() 调用与 onDestroy() 调用之间。您的 Activity 应在 onCreate() 中执行“全局”状态设置
+		（例如定义布局），并释放 onDestroy() 中的所有其余资源。例如，如果您的 Activity 有一个在后台运行的线程，用于从网络上下载数据，
+		它可能会在 onCreate() 中创建该线程，然后在 onDestroy() 中停止该线程。
+
+		2.Activity 的可见生命周期发生在 onStart() 调用与 onStop() 调用之间。在这段时间，用户可以在屏幕上看到 Activity 并与其交互。
+		例如，当一个新 Activity 启动，并且此 Activity 不再可见时，系统会调用 onStop()。您可以在调用这两个方法之间保留向用户显示
+		Activity 所需的资源。 例如，您可以在 onStart() 中注册一个 BroadcastReceiver 以监控影响 UI 的变化，并在用户无法再看到您显示的
+		内容时在 onStop() 中将其取消注册。在 Activity 的整个生命周期，当 Activity 在对用户可见和隐藏两种状态中交替变化时，
+		系统可能会多次调用 onStart() 和 onStop()。
+
+		3.Activity的前台生命周期发生在 onResume() 调用与 onPause() 调用之间。在这段时间，Activity位于屏幕上的所有其他 Activity 之前，
+		并具有用户输入焦点。 Activity 可频繁转入和转出前台 — 例如，当设备转入休眠状态或出现对话框时，系统会调用 onPause()。 
+		由于此状态可能经常发生转变，因此这两个方法中应采用适度轻量级的代码，以避免因转变速度慢而让用户等待。
+
+	 Activity 创建后，onPause() 必定成为最后调用的方法，然后才能终止进程 — 如果系统在紧急情况下必须恢复内存，则可能不会调用 onStop() 和
+	onDestroy()。因此，您应该使用 onPause() 向存储设备写入至关重要的持久性数据（例如用户编辑）。不过，您应该对 onPause() 调用期间
+	必须保留的信息有所选择，因为该方法中的任何阻止过程都会妨碍向下一个 Activity 的转变并拖慢用户体验。
+
+	在从 onPause() 返回的时间到 onResume() 被调用的时间，系统可以终止 Activity。在 onPause() 被再次调用并返回前，将无法再次终止Activity。
+
+	注：根据表 1 中的定义属于技术上无法“终止”的 Activity 仍可能被系统终止 — 但这种情况只有在无任何其他资源的极端情况下才会发生。
+	进程和线程处理文档对可能会终止 Activity 的情况做了更详尽的阐述。
+
+	当 Activity 暂停或停止时，Activity 的状态会得到保留。 确实如此，因为当 Activity 暂停或停止时，Activity 对象仍保留在内存中 — 
+	有关其成员和当前状态的所有信息仍处于活动状态。 因此，用户在 Activity 内所做的任何更改都会得到保留，这样一来，当 Activity 返回前台
+	（当它“继续”）时，这些更改仍然存在。
+
+	注：无法保证系统会在销毁您的 Activity 前调用 onSaveInstanceState()，因为存在不需要保存状态的情况（例如用户使用“返回”按钮离开您的
+	Activity 时，因为用户的行为是在显式关闭 Activity）。 如果系统调用 onSaveInstanceState()，它会在调用 onStop() 之前，并且可能会在调用 
+	onPause() 之前进行调用。
+
+	不过，即使您什么都不做，也不实现 onSaveInstanceState()，Activity 类的 onSaveInstanceState() 默认实现也会恢复部分 Activity 状态。
+	具体地讲，默认实现会为布局中的每个 View 调用相应的 onSaveInstanceState() 方法，让每个视图都能提供有关自身的应保存信息。
+	Android 框架中几乎每个小部件都会根据需要实现此方法，以便在重建 Activity 时自动保存和恢复对 UI 所做的任何可见更改。
+	例如，EditText 小部件保存用户输入的任何文本，CheckBox 小部件保存复选框的选中或未选中状态。您只需为想要保存其状态的每个小部件提供一个
+	唯一的 ID（通过 android:id 属性）。如果小部件没有 ID，则系统无法保存其状态。
+
+	您还可以通过将 android:saveEnabled 属性设置为 "false" 或通过调用 setSaveEnabled() 方法显式阻止布局内的视图保存其状态。
+	您通常不应将该属性停用，但如果您想以不同方式恢复 Activity UI 的状态，就可能需要这样做。
+
+	尽管 onSaveInstanceState() 的默认实现会保存有关您的Activity UI 的有用信息，您可能仍需替换它以保存更多信息。例如，您可能需要保存在 
+	Activity 生命周期内发生了变化的成员值（它们可能与 UI 中恢复的值有关联，但默认情况下系统不会恢复储存这些 UI 值的成员）。
+
+	由于 onSaveInstanceState() 的默认实现有助于保存 UI 的状态，因此如果您为了保存更多状态信息而替换该方法，应始终先调用 
+	onSaveInstanceState() 的超类实现，然后再执行任何操作。 同样，如果您替换 onRestoreInstanceState() 方法，也应调用它的超类实现，
+	以便默认实现能够恢复视图状态。
+
+	注：由于无法保证系统会调用 onSaveInstanceState()，因此您只应利用它来记录 Activity 的瞬态（UI 的状态）— 切勿使用它来存储持久性数据，
+	而应使用 onPause() 在用户离开 Activity 后存储持久性数据（例如应保存到数据库的数据）。
+
+	您只需旋转设备，让屏幕方向发生变化，就能有效地测试您的应用的状态恢复能力。 当屏幕方向变化时，系统会销毁并重建Activity，以便应用可供
+	新屏幕配置使用的备用资源。单凭这一理由，您的 Activity 在重建时能否完全恢复其状态就显得非常重要，因为用户在使用应用时经常需要旋转屏幕。
+
+	如果这些 Activity 共用保存到磁盘或其他地方的数据，必须了解的是，在创建第二个 Activity 前，第一个 Activity 不会完全停止。
+	更确切地说，启动第二个 Activity 的过程与停止第一个 Activity 的过程存在重叠。
+
+	生命周期回调的顺序经过明确定义。以下是当 Activity A 启动 Activity B 时一系列操作的发生顺序：
+
+		1.Activity A 的 onPause() 方法执行。
+		2.Activity B 的 onCreate()、onStart() 和 onResume() 方法依次执行。（Activity B 现在具有用户焦点。）
+		3.然后，如果 Activity A 在屏幕上不再可见，则其 onStop() 方法执行。
+		
+		您可以利用这种可预测的生命周期回调顺序管理从一个 Activity 到另一个 Activity 的信息转变。 例如，如果您必须在第一个 Activity 
+		停止时向数据库写入数据，以便下一个 Activity 能够读取该数据，则应在 onPause() 而不是 onStop() 执行期间向数据库写入数据。
+
+
+2、片段
+
+	https://developer.android.com/guide/components/fragments.html
+
+	Fragment 表示 Activity 中的行为或用户界面部分。您可以将多个片段组合在一个 Activity 中来构建多窗格 UI，以及在多个 Activity 中
+	重复使用某个片段
+
+	您可以将片段视为 Activity 的模块化组成部分，它具有自己的生命周期，能接收自己的输入事件，并且您可以在 Activity 运行时添加或移除片段
+	（有点像您可以在不同 Activity 中重复使用的“子 Activity”）。
+
+	片段必须始终嵌入在 Activity 中，其生命周期直接受宿主 Activity 生命周期的影响。 例如，当 Activity 暂停时，其中的所有片段也会暂停；
+	当 Activity 被销毁时，所有片段也会被销毁。
+
+	当 Activity 正在运行（处于已恢复生命周期状态）时，您可以独立操纵每个片段，如添加或移除它们。 当您执行此类片段事务时，
+	您也可以将其添加到由 Activity 管理的返回栈 — Activity 中的每个返回栈条目都是一条已发生片段事务的记录。 返回栈让用户可以通过按
+	返回按钮撤消片段事务（后退）。
+
+	片段并非必须成为 Activity 布局的一部分；您还可以将没有自己 UI 的片段用作 Activity 的不可见工作线程。
+
+	您应该将每个片段都设计为可重复使用的模块化 Activity 组件。也就是说，由于每个片段都会通过各自的生命周期回调来定义其自己的布局和行为，
+	您可以将一个片段加入多个 Activity，因此，您应该采用可复用式设计，避免直接从某个片段直接操纵另一个片段。 这特别重要，
+	因为模块化片段让您可以通过更改片段的组合方式来适应不同的屏幕尺寸。
+
+	在设计可同时支持平板电脑和手机的应用时，您可以在不同的布局配置中重复使用您的片段，以根据可用的屏幕空间优化用户体验。 
+	例如，在手机上，如果不能在同一 Activity 内储存多个片段，可能必须利用单独片段来实现单窗格 UI。
+
+	要想创建片段，您必须创建 Fragment 的子类（或已有其子类）。Fragment 类的代码与 Activity 非常相似。它包含与 Activity 类似的回调方法，
+	如 onCreate()、onStart()、onPause() 和 onStop()。
+
+	如果您要将现有 Android 应用转换为使用片段，可能只需将代码从 Activity 的回调方法移入片段相应的回调方法中。
+	通常，您至少应实现以下生命周期方法：
+
+		onCreate()
+		系统会在创建片段时调用此方法。您应该在实现内初始化您想在片段暂停或停止后恢复时保留的必需片段组件。
+
+		onCreateView()
+		系统会在片段首次绘制其用户界面时调用此方法。 要想为您的片段绘制 UI，您从此方法中返回的 View 必须是片段布局的根视图。
+		如果片段未提供 UI，您可以返回 null。
+
+		onPause()
+		系统将此方法作为用户离开片段的第一个信号（但并不总是意味着此片段会被销毁）进行调用。 您通常应该在此方法内确认在当前用户会话
+		结束后仍然有效的任何更改（因为用户可能不会返回）。
+
+		大多数应用都应该至少为每个片段实现这三个方法，但您还应该使用几种其他回调方法来处理片段生命周期的各个阶段。
+
+	DialogFragment
+	显示浮动对话框。使用此类创建对话框可有效地替代使用 Activity 类中的对话框帮助程序方法，因为您可以将片段对话框纳入由 Activity 
+	管理的片段返回栈，从而使用户能够返回清除的片段。
+
+	ListFragment
+	显示由适配器（如 SimpleCursorAdapter）管理的一系列项目，类似于 ListActivity。它提供了几种管理列表视图的方法，
+	如用于处理点击事件的 onListItemClick() 回调。
+
+	PreferenceFragment
+	以列表形式显示 Preference 对象的层次结构，类似于 PreferenceActivity。这在为您的应用创建“设置” Activity 时很有用处。
+
+	注：如果您的片段是 ListFragment 的子类，则默认实现会从 onCreateView() 返回一个 ListView，因此您无需实现它。
+
+	当系统创建此 Activity 布局时，会实例化在布局中指定的每个片段，并为每个片段调用 onCreateView() 方法，以检索每个片段的布局。
+	系统会直接插入片段返回的 View 来替代 <fragment> 元素。
+
+	注：每个片段都需要一个唯一的标识符，重启 Activity 时，系统可以使用该标识符来恢复片段（您也可以使用该标识符来捕获片段以执行某些事务，
+	如将其移除）。 可以通过三种方式为片段提供 ID：
+		1.为 android:id 属性提供唯一 ID。
+		2.为 android:tag 属性提供唯一字符串。
+		3.如果您未给以上两个属性提供值，系统会使用容器视图的 ID。
+
+	要想在您的 Activity 中执行片段事务（如添加、移除或替换片段），您必须使用 FragmentTransaction 中的 API。
+
+	您还可以使用片段为 Activity 提供后台行为，而不显示额外 UI。
+
+	要想添加没有 UI 的片段，请使用 add(Fragment, String) 从 Activity 添加片段（为片段提供一个唯一的字符串“标记”，而不是视图 ID）。 
+	这会添加片段，但由于它并不与 Activity 布局中的视图关联，因此不会收到对 onCreateView() 的调用。因此，您不需要实现该方法。
+
+	并非只能为非 UI 片段提供字符串标记 — 您也可以为具有 UI 的片段提供字符串标记 — 但如果片段没有 UI，则字符串标记将是标识它的唯一方式。
+	如果您想稍后从 Activity 中获取片段，则需要使用 findFragmentByTag()。
+
+	要想管理您的 Activity 中的片段，您需要使用 FragmentManager。要想获取它，请从您的 Activity 调用 getFragmentManager()。
+
+	您可以使用 FragmentManager 执行的操作包括：
+
+		1.通过 findFragmentById()（对于在 Activity 布局中提供 UI 的片段）或 findFragmentByTag()（对于提供或不提供 UI 的片段）获取 
+		Activity 中存在的片段。
+		2.通过 popBackStack()（模拟用户发出的返回命令）将片段从返回栈中弹出。
+		3.通过 addOnBackStackChangedListener() 注册一个侦听返回栈变化的侦听器。
+
+	在 Activity中使用片段的一大优点是，可以根据用户行为通过它们执行添加、移除、替换以及其他操作。您提交给 Activity 的每组更改都称为事务，
+	您可以使用 FragmentTransaction 中的 API 来执行一项事务。您也可以将每个事务保存到由 Activity 管理的返回栈内，
+	从而让用户能够回退片段更改（类似于回退 Activity）。
+
+	每个事务都是您想要同时执行的一组更改。您可以使用 add()、remove() 和 replace() 等方法为给定事务设置您想要执行的所有更改。
+	然后，要想将事务应用到 Activity，您必须调用 commit()。
+
+	不过，在您调用 commit() 之前，您可能想调用 addToBackStack()，以将事务添加到片段事务返回栈。 该返回栈由 Activity 管理，
+	允许用户通过按返回按钮返回上一片段状态。
+
+	如果您向事务添加了多个更改（如又一个 add() 或 remove()），并且调用了 addToBackStack()，则在调用 commit() 前应用的所有更改都将作为
+	单一事务添加到返回栈，并且返回按钮会将它们一并撤消。
+
+	如果您没有在执行移除片段的事务时调用 addToBackStack()，则事务提交时该片段会被销毁，用户将无法回退到该片段。 
+	不过，如果您在删除片段时调用了 addToBackStack()，则系统会停止该片段，并在用户回退时将其恢复。
+
+	提示：对于每个片段事务，您都可以通过在提交前调用 setTransition() 来应用过渡动画。
+
+	调用 commit() 不会立即执行事务，而是在 Activity 的 UI 线程（“主”线程）可以执行该操作时再安排其在线程上运行。
+	不过，如有必要，您也可以从 UI 线程调用 executePendingTransactions() 以立即执行 commit() 提交的事务。通常不必这样做，
+	除非其他线程中的作业依赖该事务。
+
+	注意：您只能在 Activity 保存其状态（用户离开 Activity）之前使用 commit() 提交事务。如果您试图在该时间点后提交，则会引发异常。
+	这是因为如需恢复 Activity，则提交后的状态可能会丢失。 对于丢失提交无关紧要的情况，请使用 commitAllowingStateLoss()。
+
+	您的片段可以通过实现 onCreateOptionsMenu() 向 Activity 的选项菜单（并因此向应用栏）贡献菜单项。不过，为了使此方法能够收到调用，
+	您必须在 onCreate() 期间调用 setHasOptionsMenu()，以指示片段想要向选项菜单添加菜单项（否则，片段将不会收到对 
+	onCreateOptionsMenu() 的调用）。
+
+	您之后从片段添加到选项菜单的任何菜单项都将追加到现有菜单项之后。 选定菜单项时，片段还会收到对 onOptionsItemSelected() 的回调。
+
+	您还可以通过调用 registerForContextMenu()，在片段布局中注册一个视图来提供上下文菜单。用户打开上下文菜单时，
+	片段会收到对 onCreateContextMenu() 的调用。当用户选择某个菜单项时，片段会收到对 onContextItemSelected() 的调用。
+
+	注：尽管您的片段会收到与其添加的每个菜单项对应的菜单项选定回调，但当用户选择菜单项时，Activity 会首先收到相应的回调。
+	如果 Activity 对菜单项选定回调的实现不会处理选定的菜单项，则系统会将事件传递到片段的回调。 这适用于选项菜单和上下文菜单。
+
+	管理片段生命周期与管理 Activity 生命周期很相似。和 Activity 一样，片段也以三种状态存在：
+
+		继续
+		片段在运行中的 Activity 中可见。
+		暂停
+		另一个 Activity 位于前台并具有焦点，但此片段所在的 Activity 仍然可见（前台 Activity 部分透明，或未覆盖整个屏幕）。
+		停止
+		片段不可见。宿主 Activity 已停止，或片段已从 Activity 中移除，但已添加到返回栈。 停止片段仍然处于活动状态
+		（系统会保留所有状态和成员信息）。 不过，它对用户不再可见，如果 Activity 被终止，它也会被终止。
+
+	同样与 Activity 一样，假使 Activity 的进程被终止，而您需要在重建 Activity 时恢复片段状态，您也可以使用 Bundle 保留片段的状态。
+	您可以在片段的 onSaveInstanceState() 回调期间保存状态，并可在 onCreate()、onCreateView() 或 onActivityCreated() 期间恢复状态。
+
+	Activity 生命周期与片段生命周期之间的最显著差异在于它们在其各自返回栈中的存储方式。 默认情况下，Activity 停止时会被放入由系统管理的 
+	Activity 返回栈（以便用户通过返回按钮回退到 Activity，任务和返回栈对此做了阐述）。不过，仅当您在移除片段的事务执行期间通过
+	调用 addToBackStack() 显式请求保存实例时，系统才会将片段放入由宿主 Activity 管理的返回栈。
+
+	在其他方面，管理片段生命周期与管理 Activity 生命周期非常相似。 因此，管理 Activity 生命周期的做法同样适用于片段。 
+	但您还需要了解 Activity 的生命周期对片段生命周期的影响。
+
+	注意：如需 Fragment 内的某个 Context 对象，可以调用 getActivity()。但要注意，请仅在片段附加到 Activity 时调用 getActivity()。
+	如果片段尚未附加，或在其生命周期结束期间分离，则 getActivity() 将返回 null。
+
+	片段还有几个额外的生命周期回调，用于处理与 Activity 的唯一交互，以执行构建和销毁片段 UI 等操作。 这些额外的回调方法是：
+
+		onAttach()
+		在片段已与 Activity 关联时调用（Activity 传递到此方法内）。
+		onCreateView()
+		调用它可创建与片段关联的视图层次结构。
+		onActivityCreated()
+		在 Activity 的 onCreate() 方法已返回时调用。
+		onDestroyView()
+		在移除与片段关联的视图层次结构时调用。
+		onDetach()
+		在取消片段与 Activity 的关联时调用。
+
+	一旦 Activity 达到恢复状态，您就可以随意向 Activity 添加片段和移除其中的片段。 因此，只有当 Activity 处于恢复状态时，
+	片段的生命周期才能独立变化。不过，当 Activity 离开恢复状态时，片段会在 Activity 的推动下再次经历其生命周期。
+
+
+3、加载器
+
+	https://developer.android.com/guide/components/loaders.html#summary
+
+	Android 3.0 中引入了加载器，支持轻松在 Activity 或片段中异步加载数据。 加载器具有以下特征：
+
+		1.可用于每个 Activity 和 Fragment。
+		2.支持异步加载数据。
+		3.监控其数据源并在内容变化时传递新结果。
+		4.在某一配置更改后重建加载器时，会自动重新连接上一个加载器的游标。 因此，它们无需重新查询其数据。
+
+	LoaderManager 可在 Activity 或 Fragment 内管理一个或多个 Loader 实例。每个 Activity 或片段中只有一个 LoaderManager。
+
+	通常，您会在Activity的onCreate()方法或片段的onActivityCreated()方法内初始化Loader：getLoaderManager().initLoader(0, null, this);
+
+	initLoader() 方法采用以下参数：
+
+		1.用于标识加载器的唯一 ID。在此示例中，ID 为 0。
+		2.在构建时提供给加载器的可选参数（在此示例中为 null）。
+		3.LoaderManager.LoaderCallbacks 实现， LoaderManager 将调用此实现来报告加载器事件。在此示例中，
+		本地类实现 LoaderManager.LoaderCallbacks 接口，因此它会传递对自身的引用 this。
+
+	initLoader() 调用确保加载器已初始化且处于活动状态。这可能会出现两种结果：
+
+		1.如果 ID 指定的加载器已存在，则将重复使用上次创建的加载器。
+		2.如果 ID 指定的加载器不存在，则 initLoader() 将触发 LoaderManager.LoaderCallbacks 方法 onCreateLoader()。
+		在此方法中，您可以实现代码以实例化并返回新加载器。
+
+	请注意，initLoader() 方法将返回已创建的 Loader，但您不必捕获其引用。LoaderManager 将自动管理加载器的生命周期。
+	LoaderManager 将根据需要启动和停止加载，并维护加载器的状态及其相关内容。 这意味着您很少直接与加载器进行交互。
+	当特定事件发生时，您通常会使用 LoaderManager.LoaderCallbacks 方法干预加载进程。
+
+	要舍弃旧数据，请使用 restartLoader()。例如，当用户的查询更改时，此 SearchView.OnQueryTextListener 实现将重启加载器。
+	加载器需要重启，以便它能够使用修订后的搜索过滤器执行新查询：getLoaderManager().restartLoader(0, null, this);
+
+	加载器（特别是 CursorLoader）在停止运行后，仍需保留其数据。这样，应用即可保留 Activity 或片段的 onStop() 和 onStart() 方法中的数据。
+	当用户返回应用时，无需等待它重新加载这些数据。您可使用 LoaderManager.LoaderCallbacks 方法了解何时创建新加载器，并告知应用何时
+	停止使用加载器的数据。
+
+	LoaderManager.LoaderCallbacks 包括以下方法：
+
+		1.onCreateLoader()：针对指定的 ID 进行实例化并返回新的 Loader
+		2.onLoadFinished() ：将在先前创建的加载器完成加载时调用
+	
+			当加载器发现应用不再使用这些数据时，即会释放它们。 例如，如果数据是来自 CursorLoader 的一个游标，则您不应手动对其
+			调用 close()。如果游标放置在 CursorAdapter 中，则应使用 swapCursor() 方法，使旧 Cursor 不会关闭。例如：
+
+			public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+    				// Swap the new cursor in.  (The framework will take care of closing the
+    				// old cursor once we return.)
+    				mAdapter.swapCursor(data);
+			}
+
+		3.onLoaderReset()：将在先前创建的加载器重置且其数据因此不可用时调用
+
+			通过此回调，您可以了解何时将释放数据，因而能够及时移除其引用。此实现调用值为 null 的swapCursor()：
+
+			public void onLoaderReset(Loader<Cursor> loader) {
+    				// This is called when the last Cursor provided to onLoadFinished()
+    				// above is about to be closed.  We need to make sure we are no
+    				// longer using it.
+    				mAdapter.swapCursor(null);
+			}
+
+
+4、任务和返回栈	
+
+	https://developer.android.com/guide/topics/manifest/activity-element.html
+	https://developer.android.com/guide/components/tasks-and-back-stack.html
+	http://892848153.iteye.com/blog/2181999
+
+	一个 Activity 甚至可以启动设备上其他应用中存在的 Activity, 即使这两个 Activity 可能来自不同的应用，
+	但是 Android 仍会将 Activity 保留在相同的任务中，以维护这种无缝的用户体验。
+
+	任务是指在执行特定作业时与用户交互的一系列 Activity。 这些 Activity 按照各自的打开顺序排列在堆栈（即返回栈）中。
+
+	设备主屏幕是大多数任务的起点。当用户触摸应用启动器中的图标（或主屏幕上的快捷方式）时，该应用的任务将出现在前台。
+	 如果应用不存在任务（应用最近未曾使用），则会创建一个新任务，并且该应用的“主”Activity 将作为堆栈中的根 Activity 打开。
+
+	堆栈中的 Activity 永远不会重新排列，仅推入和弹出堆栈：由当前 Activity 启动时推入堆栈；用户使用“返回”按钮退出时弹出堆栈。
+	 因此，返回栈以“后进先出”对象结构运行。
+
+	如果用户继续按“返回”，堆栈中的相应 Activity 就会弹出，以显示前一个 Activity，直到用户返回主屏幕为止
+	（或者，返回任务开始时正在运行的任意 Activity）。 当所有 Activity 均从堆栈中移除后，任务即不复存在。
+
+	系统停止您的一个 Activity 时（例如，新 Activity 启动或任务转到前台），如果系统需要回收系统内存资源，则可能会完全销毁该 Activity。
+	 发生这种情况时，有关该 Activity 状态的信息将会丢失。如果发生这种情况，系统仍会知道该 Activity 存在于返回栈中，
+	但是当该 Activity 被置于堆栈顶部时，系统一定会重建 Activity（而不是恢复 Activity）。 为了避免用户的工作丢失，
+	您应主动通过在 Activity 中实现 onSaveInstanceState() 回调方法来保留工作。
+
+	如果 Activity A 启动 Activity B，则 Activity B 可以在其清单文件中定义它应该如何与当前任务关联（如果可能），
+	并且 Activity A 还可以请求 Activity B 应该如何与当前任务关联。如果这两个 Activity 均定义 Activity B 应该如何与任务关联，
+	则 Activity A 的请求（如 Intent 中所定义）优先级要高于 Activity B 的请求（如其清单文件中所定义）。
+
+	注：某些适用于清单文件的启动模式不可用作 Intent 标志，同样，某些可用作 Intent 标志的启动模式无法在清单文件中定义。
+
+	"singleTask"
+		系统创建新任务并实例化位于新任务底部的 Activity。但是，如果该 Activity 的一个实例已存在于一个单独的任务中，
+		则系统会通过调用现有实例的 onNewIntent() 方法向其传送 Intent，而不是创建新实例。一次只能存在 Activity 的一个实例。
+
+		注：尽管 Activity 在新任务中启动，但是用户按“返回”按钮仍会返回到前一个 Activity。
+	
+	无论 Activity 是在新任务中启动，还是在与启动 Activity 相同的任务中启动，用户按“返回”按钮始终会转到前一个 Activity。 但是，
+	如果启动指定 singleTask 启动模式的 Activity，则当某后台任务中存在该 Activity 的实例时，整个任务都会转移到前台。此时，
+	返回栈包括上移到堆栈顶部的任务中的所有 Activity，用户按“返回”按钮就会返回到顶部的任务中的前一个Activity。
+
+	FLAG_ACTIVITY_CLEAR_TOP
+		如果正在启动的 Activity 已在当前任务中运行，则会销毁当前任务顶部的所有 Activity，并通过 onNewIntent() 
+		将此 Intent 传递给 Activity 已恢复的实例（现在位于顶部），而不是启动该 Activity 的新实例。
+		
+		产生这种行为的 launchMode 属性没有值。
+
+		FLAG_ACTIVITY_CLEAR_TOP 通常与 FLAG_ACTIVITY_NEW_TASK 结合使用。一起使用时，通过这些标志，
+		可以找到其他任务中的现有 Activity，并将其放入可从中响应 Intent 的位置。
+
+		注：如果指定 Activity 的启动模式为 "standard"，则该 Activity 也会从堆栈中移除，并在其位置启动一个新实例，
+		以便处理传入的 Intent。 这是因为当启动模式为 "standard" 时，将始终为新 Intent 创建新实例。
+	
+	默认情况下，同一应用中的所有 Activity 优先位于相同任务中。可以使用 <activity> 元素的 taskAffinity 属性修改任何给定 Activity 的关联。
+	在两种情况下，关联会起作用：
+
+		启动 Activity 的 Intent 包含 FLAG_ACTIVITY_NEW_TASK 标志。
+
+		Activity 将其 allowTaskReparenting 属性设置为 "true"。
+
+			在这种情况下，Activity 可以从其启动的任务移动到与其具有关联的任务（如果该任务出现在前台）。
+			例如，假设将报告所选城市天气状况的 Activity 定义为旅行应用的一部分。 它与同一应用中的其他 Activity 具有相同的关联
+			（默认应用关联），并允许利用此属性重定父级。当您的一个 Activity 启动天气预报 Activity 时，它最初所属的任务与您的
+			 Activity 相同。 但是，当旅行应用的任务出现在前台时，系统会将天气预报 Activity 重新分配给该任务并显示在其中。
+
+	提示：如果从用户的角度来看，一个 .apk 文件包含多个“应用”，则您可能需要使用 taskAffinity 属性将不同关联分配给与每个“应用”相关的 Activity。
+
+	如果用户长时间离开任务，则系统会清除所有 Activity 的任务，根 Activity 除外。 当用户再次返回到任务时，仅恢复根 Activity。
+	您可以使用下列几个 Activity 属性修改此行为：
+
+		alwaysRetainTaskState
+			如果在任务的根 Activity 中将此属性设置为 "true"，则不会发生刚才所述的默认行为。即使在很长一段时间后，
+			任务仍将所有 Activity 保留在其堆栈中。
+
+		clearTaskOnLaunch
+			如果在任务的根 Activity 中将此属性设置为 "true"，则每当用户离开任务然后返回时，系统都会将堆栈清除到只剩下根 Activity。
+			 换而言之，它与 alwaysRetainTaskState 正好相反。 即使只离开任务片刻时间，用户也始终会返回到任务的初始状态。
+	
+		finishOnTaskLaunch
+			此属性类似于 clearTaskOnLaunch，但它对单个 Activity 起作用，而非整个任务。 此外，它还有可能会导致任何 Activity 停止，
+			包括根 Activity。 设置为 "true" 时，Activity 仍是任务的一部分，但是仅限于当前会话。如果用户离开然后返回任务，
+			则任务将不复存在。
+
+
+5、处理运行时变更
+
+	https://developer.android.com/guide/topics/resources/runtime-changes.html
+
+	有些设备配置可能会在运行时发生变化（例如屏幕方向、键盘可用性及语言）。 发生这种变化时，Android 会重启正在运行的 Activity
+	（先后调用 onDestroy() 和 onCreate()）。重启行为旨在通过利用与新设备配置匹配的备用资源自动重新加载您的应用，来帮助它适应新配置。
+
+	在 Activity 生命周期中，Android 会在销毁 Activity 之前调用 onSaveInstanceState()，以便您保存有关应用状态的数据。 
+	然后，您可以在 onCreate() 或 onRestoreInstanceState() 期间恢复 Activity 状态。
+
+	果重启 Activity 需要恢复大量数据、重新建立网络连接或执行其他密集操作，依靠系统通过onSaveInstanceState() 回调为您保存的 Bundle，
+	可能无法完全恢复 Activity 状态，因为它并非设计用于携带大型对象（例如位图），而且其中的数据必须先序列化，再进行反序列化，
+	这可能会消耗大量内存并使得配置变更速度缓慢。
+
+	重启应用并恢复大量数据不仅成本高昂，而且给用户留下糟糕的使用体验。 在这种情况下，您有两个其他选择：
+
+		a.在配置变更期间保留对象
+		允许 Activity 在配置变更时重启，但是要将有状态对象传递给 Activity 的新实例。
+
+		如果 Activity 因配置变更而重启，则可通过保留 Fragment 来减轻重新初始化 Activity 的负担。
+
+		此片段可能包含对您要保留的有状态对象的引用。
+
+		当 Android 系统因配置变更而关闭 Activity 时，不会销毁您已标记为要保留的 Activity 的片段。 您可以将此类片段添加到 Activity 
+		以保留有状态的对象。
+
+		要在运行时配置变更期间将有状态的对象保留在片段中，请执行以下操作：
+
+			1.扩展 Fragment 类并声明对有状态对象的引用。
+
+			2.在创建片段后调用 setRetainInstance(boolean)。
+
+			3.将片段添加到 Activity。
+
+			4.重启 Activity 后，使用 FragmentManager 检索片段。
+
+			public class RetainedFragment extends Fragment {
+
+    				// data object we want to retain
+    				private MyDataObject data;
+
+    				// this method is only called once for this fragment
+    				@Override
+    				public void onCreate(Bundle savedInstanceState) {
+        				super.onCreate(savedInstanceState);
+        				// retain this fragment
+        				setRetainInstance(true);
+    				}
+
+    				public void setData(MyDataObject data) {
+        				this.data = data;
+    				}
+
+    				public MyDataObject getData() {
+        				return data;
+    				}
+			}
+
+			注意：尽管您可以存储任何对象，但是切勿传递与 Activity 绑定的对象，例如，Drawable、Adapter、View 或其他任何与 
+			Context 关联的对象。否则，它将泄漏原始 Activity 实例的所有视图和资源。 （泄漏资源意味着应用将继续持有这些资源，
+			但是无法对其进行垃圾回收，因此可能会丢失大量内存。）
+
+			然后，使用 FragmentManager 将片段添加到 Activity。在运行时配置变更期间再次启动 Activity 时，
+			您可以获得片段中的数据对象。 例如，按如下方式定义 Activity：
+
+			public class MyActivity extends Activity {
+
+    				private RetainedFragment dataFragment;
+
+    				@Override
+    				public void onCreate(Bundle savedInstanceState) {
+        				super.onCreate(savedInstanceState);
+        				setContentView(R.layout.main);
+
+        				// find the retained fragment on activity restarts
+        				FragmentManager fm = getFragmentManager();
+        				dataFragment = (DataFragment) fm.findFragmentByTag(“data”);
+
+        				// create the fragment and data the first time
+        				if (dataFragment == null) {
+            					// add the fragment
+            					dataFragment = new DataFragment();
+            					fm.beginTransaction().add(dataFragment, “data”).commit();
+            					// load the data from the web
+            					dataFragment.setData(loadMyData());
+        				}
+
+        				// the data is available in dataFragment.getData()
+        				...
+    				}
+
+    				@Override
+    				public void onDestroy() {
+        				super.onDestroy();
+        				// store the data in the fragment
+        				dataFragment.setData(collectMyLoadedData());
+    				}
+			}
+
+			在此示例中，onCreate() 添加了一个片段或恢复了对它的引用。此外，onCreate() 还将有状态的对象存储在片段实例内部。
+			onDestroy() 对所保留的片段实例内的有状态对象进行更新。
+
+		b.自行处理配置变更
+		阻止系统在某些配置变更期间重启 Activity，但要在配置确实发生变化时接收回调，这样，您就能够根据需要手动更新 Activity。
+
+		如果应用在特定配置变更期间无需更新资源，并且因性能限制您需要尽量避免重启，则可声明 Activity 将自行处理配置变更，
+		这样可以阻止系统重启 Activity。
+
+		注：自行处理配置变更可能导致备用资源的使用更为困难，因为系统不会为您自动应用这些资源。 只能在您必须避免 Activity 因配置变更而
+		重启这一万般无奈的情况下，才考虑采用自行处理配置变更这种方法，而且对于大多数应用并不建议使用此方法。
+
+		要声明由 Activity 处理配置变更，请在清单文件中编辑相应的 <activity> 元素，以包含 android:configChanges 属性以及代表要处理的
+		配置的值。（最常用的值包括 "orientation" 和 "keyboardHidden"，分别用于避免因屏幕方向和可用键盘改变而导致重启）。
+
+		例如，以下清单文件代码声明的 Activity 可同时处理屏幕方向变更和键盘可用性变更：
+
+		<activity android:name=".MyActivity"
+          		android:configChanges="orientation|keyboardHidden"
+          		android:label="@string/app_name">
+
+		现在，当其中一个配置发生变化时，MyActivity 不会重启。相反，MyActivity 会收到对 onConfigurationChanged() 的调用。
+		向此方法传递 Configuration 对象指定新设备配置。您可以通过读取 Configuration 中的字段，确定新配置，
+		然后通过更新界面中使用的资源进行适当的更改。调用此方法时，Activity 的 Resources 对象会相应地进行更新，以根据新配置返回资源，
+		这样，您就能够在系统不重启 Activity 的情况下轻松重置 UI 的元素。
+
+		注意：从 Android 3.2（API 级别 13）开始，当设备在纵向和横向之间切换时，“屏幕尺寸”也会发生变化。因此，
+		在开发针对 API 级别 13 或更高版本（正如 minSdkVersion 和 targetSdkVersion 属性中所声明）的应用时，
+		若要避免由于设备方向改变而导致运行时重启，则除了 "orientation" 值以外，您还必须添加 "screenSize" 值。 也就是说，
+		您必须声明 android:configChanges="orientation|screenSize"。但是，如果您的应用面向 API 级别 12 或更低版本，
+		则 Activity 始终会自行处理此配置变更（即便是在 Android 3.2 或更高版本的设备上运行，此配置变更也不会重启 Activity）。
+
+		例如，以下 onConfigurationChanged() 实现检查当前设备方向：
+
+		@Override
+		public void onConfigurationChanged(Configuration newConfig) {
+    			super.onConfigurationChanged(newConfig);
+
+    			// Checks the orientation of the screen
+    			if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        			Toast.makeText(this, "landscape", Toast.LENGTH_SHORT).show();
+    			} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+        			Toast.makeText(this, "portrait", Toast.LENGTH_SHORT).show();
+    			}
+		}
+
+		Configuration 对象代表所有当前配置，而不仅仅是已经变更的配置。大多数时候，您并不在意配置具体发生了哪些变更，
+		而且您可以轻松地重新分配所有资源，为您正在处理的配置提供备用资源。
+
+		请谨记：在声明由 Activity 处理配置变更时，您有责任重置要为其提供备用资源的所有元素。 如果您声明由 Activity 处理方向变更，
+		而且有些图像应该在横向和纵向之间切换，则必须在 onConfigurationChanged() 期间将每个资源重新分配给每个元素。
+
+		如果无需基于这些配置变更更新应用，则可不用实现 onConfigurationChanged()。在这种情况下，仍将使用在配置变更之前用到的所有资源，
+		只是您无需重启 Activity。 但是，应用应该始终能够在保持之前状态完好的情况下关闭和重启，因此您不得试图通过此方法来逃避在正常
+		 Activity 生命周期期间保持您的应用状态。 这不仅仅是因为还存在其他一些无法禁止重启应用的配置变更，还因为有些事件必须由您处理，
+		例如用户离开应用，而在用户返回应用之前该应用已被销毁。

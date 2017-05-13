@@ -1,0 +1,44 @@
+Error:Failed to open zip file. Gradle's dependency cache may be corrupt (this sometimes occurs after a network connection timeout.) 
+	<a href="syncProject">Re-download dependencies and sync project (requires network)</a> 
+	<a href="syncProject">Re-download dependencies and sync project (requires network)</a>
+
+	gradle-wrapper.properties指向的版本要跟 Settings > Build,Execution,Deployment > Gradle中 Gradle home设置的版本一致。
+
+
+
+
+
+Error:Could not find com.android.tools.build:gradle:3.2.0.
+Searched in the following locations:
+    file:/D:/soft/android-studio2.1.1/studio/gradle/m2repository/com/android/tools/build/gradle/3.2.0/gradle-3.2.0.pom
+    file:/D:/soft/android-studio2.1.1/studio/gradle/m2repository/com/android/tools/build/gradle/3.2.0/gradle-3.2.0.jar
+    https://jcenter.bintray.com/com/android/tools/build/gradle/3.2.0/gradle-3.2.0.pom
+    https://jcenter.bintray.com/com/android/tools/build/gradle/3.2.0/gradle-3.2.0.jar
+Required by:
+    project :
+
+
+	build.gradle文件中dependencies块配置的gradle版本号需要在studio自带的gradle文件夹路径
+	D:/soft/android-studio2.1.1/studio/gradle/m2repository/com/android/tools/build/gradle/2.3.0/下有相应的版本的两个文件：gradle-2.3.0.pom和gradle-2.3.0.jar。
+	如：
+	这里配置了2.3.0版本
+	dependencies {
+        	classpath 'com.android.tools.build:gradle:2.3.0'
+
+        	// NOTE: Do not place your application dependencies here; they belong
+        	// in the individual module build.gradle files
+    	}
+	那么文件夹路径D:/soft/android-studio2.1.1/studio/gradle/m2repository/com/android/tools/build/gradle/下就需要有2.3.0版本文件夹，并且
+	里边必须有gradle-2.3.0.pom和gradle-2.3.0.jar两个文件。
+
+	除了上面的配置一致外,gradle-wrapper.properties文件中distributionUrl路径对应的版本在studio自带的gradle文件夹路径
+	下也需要有相应的版，如：
+
+		如果gradle-wrapper.properties文件中distributionUrl=https\://services.gradle.org/distributions/gradle-3.2-all.zip		
+		那么在D:\soft\android-studio2.1.1\studio\gradle\中也要有gradle-3.2版本
+
+	最后在Settings > Build,Execution,Deployment > Gradle中 Gradle home设置成studio自带的gradle文件夹路径
+	D:/soft/android-studio2.1.1/studio/gradle/下的版本
+
+	studio自带的gradle文件夹路径D:/soft/android-studio2.1.1/studio/gradle/m2repository/com/android/tools/build/gradle/下的版本可以到
+	https://jcenter.bintray.com/com/android/tools/build/gradle/上下载

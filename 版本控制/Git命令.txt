@@ -1,0 +1,25 @@
+https://git-scm.com/book/zh/v2/起步-关于版本控制
+
+git config：配置信息，--global表示全局(所有用户目录、用户目录、用户的仓库目录)，
+
+	$ git config --global user.name "John Doe" 配置用户名，会被写入到每一次提交中
+	$ git config --global user.email johndoe@example.com   配置Email，会被写入到每一次提交中
+
+	$ git config --global core.editor emacs 配置默认编辑器，默认是Vim
+
+git config <key>：检查某一行配置   如：git config user.name
+
+git help <verb>：查看帮助  如：git help config
+
+	三个写法都可以：
+	$ git help <verb>
+	$ git <verb> --help
+	$ man git-<verb>
+
+
+获取已有项目：git clone + 项目地址
+
+	如：git clone https:android.googlesource.com/platform/frameworks/volley
+
+
+git remote rm paul：删除远程仓库paul

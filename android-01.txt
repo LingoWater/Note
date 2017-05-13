@@ -1,0 +1,502 @@
+1、四大组件
+
+	http://www.cnblogs.com/pepcod/archive/2013/02/11/2937403.html
+	http://www.cnblogs.com/bravestarrhu/archive/2012/05/02/2479461.html
+	http://www.cnblogs.com/yuzhongzheng/p/5228393.html
+
+	https://developer.android.com/guide/topics/manifest/activity-element.html
+	https://developer.android.com/guide/components/tasks-and-back-stack.html
+	http://892848153.iteye.com/blog/2181999
+
+
+2、Android系统进程间通信Binder机制在应用程序框架层的Java接口源代码分析（Server、Client、Service Manager）
+
+	http://blog.csdn.net/luoshengyang/article/details/6642463
+	http://blog.csdn.net/andyhuabing/article/details/7459073
+
+	IBinder接口声明了transact(int code, Parcel data, Parcel reply, int flags)方法；
+	
+	Binder实现了IBinder接口，定义了onTransact(...)方法和 execTransact(...)方法 ，在transact和execTransact方法中调用onTransact方法。
+
+	BinderProxy也实现了IBinder接口，创建的对象一般作为Binder的代理对象。
+
+	实现进程间通信的Binder继承类A一般都实现某个继承了IInterface的接口XXX，并提供asInterface静态方法返回一个实现了XXX接口的对象(也可是A)。
+
+	根据AIDL接口文件生成的JAVA接口XXX(继承IInterface)内部都有静态Stub抽象类，静态Stub抽象类内部定义了静态Proxy类。
+	静态Stub抽象类继承Binder并实现XXX接口，其内部静态Proxy类实现XXX接口。
+	Proxy类需要将Binder对象作为参数实例化，Binder保存在其内部mRemote成员变量中，通过实现XXX接口声明的方法调用mRemote的transact方法。
+
+	Java语言的Binder接口是通过JNI来调用基于C/C++语言的Binder运行库来为Java应用程序提供进程间通信服务的了。
+
+	Service继承Binder，实现IInterface接口。
+
+
+	一、获取Service Manager的Java远程接口
+
+	1、ServiceManager.getIServiceManager()返回IServiceManager对象，保存在 private static IServiceManager sServiceManager中。
+
+		每个应用程序进程只有一个IServiceManager 对象，IServiceManager 是一个接口，继承IInterface。
+		IServiceManager提供了getService和addService两个成员函数来管理系统中的Service。
+
+		sServiceManager通过ServiceManagerNative.asInterface(BinderInternal.getContextObject());获得，
+		ServiceManagerNative extends Binder implements IServiceManager。
+
+		BinderInternal的getContextObject是一个native函数，在C++中得到句柄为0的BpBinder对象后，创建一个BinderProxy对象，
+		把BpBinder对象的地址保存在BinderProxy对象中，而且BinderProxy对象也放入BpBinder中，两者关联起来了。最后返回BinderProxy对象。
+
+		gBinderProxyOffsets.mObject成员变量记录了句柄为0的BpBinder对象的地址，并把BinderProxy放到BpBinder里面去。
+		通过BpBinder::transact函数进入到Binder驱动程序。
+
+		BinderInternal.getContextObject()返回的就是一个BinderProxy对象，BinderProxy实现IBinder接口。
+		所以ServiceManagerNative.asInterface(BinderInternal.getContextObject())==ServiceManagerNative.asInterface(new BinderProxy())。
+
+		ServiceManagerNative.asInterface(IBinder obj)返回一个ServiceManagerProxy对象，ServiceManagerProxy实现IServiceManager接口。
+		asInterface(IBinder obj)会把obj IBinder作为参数new一个ServiceManagerProxy对象，并把obj IBinder保存在mRemote成员变量中。
+
+		sServiceManager其实是ServiceManagerProxy类型对象。ServiceManagerProxy implements IServiceManager。
+
+		总结一下，在Java层，我们拥有了一个Service Manager远程接口ServiceManagerProxy，
+		而这个ServiceManagerProxy对象在JNI层有一个句柄值为0的BpBinder对象与之通过gBinderProxyOffsets关联起来。
+		gBinderProxyOffsets是一个结构体，用来记录上面第一个图中的BinderProxy类的相关信息的。
+
+
+	二、向Service Manager中注册Service
+		
+	1、Service(如系统Service：wms)启动实例化对象。
+
+		如在SystemServer(Sygote通过fork调用复制出的第一个进程)中ServerThread线程中new 一个Service实例对象(创建AMS、WMS服务对象)。
+
+		Service继承IXXX.Stub,IXXX.Stub继承Binder,所以会调用Binder的构造函数。Binder构造函数通过init()JNI方法初始化Binder。
+		init()JNI方法创建一个JavaBBinderHolder对象jbh，然后把这个对象的地址保存在上面的Binder类的mObject成员变量中。
+
+	2、通过ServiceManager.addService("hello", new HelloService()); 将Service实例添加到Service Manager中去。
+
+		实际调用ServiceManagerProxy对象的addService(String name, IBinder service)方法。
+
+		把参数写到Parcel中去，把Service通过Parcel的writeStrongBinder(service)方法写到Parcel对象中去。
+
+		writeStrongBinder方法通过JNI调用在C++中把Service Binder的mObject中的JavaBBinderHolder对象的地址转换成JavaBBinderHolder对象。
+
+		C++中创建一个JavaBBinder对象，保存在JavaBBinderHolder对象的成员变量mBinder中。JavaBBinder类继承于BBinder类。
+		(IPCThreadState类负责与Binder驱动程序进行交互，它把从Binder驱动程序读出来的请求作简单的处理后，
+		最后把这个请求扔给BBinder的onTransact函数来进一步处理)。
+
+		C++中把Service对象保存在JavaBBinder对象的成员变量mObject中。实际是把JavaBBinder类型的Binder实体写到Parcel对象中。
+
+		通过ServiceManagerProxy的成员变量mRemote保存的BinderProxy对象调用transact方法进行进程间通信。
+
+		C++中通过gBinderProxyOffsets保存的BpBinder的地址转换成BpBinder对象的IBinder接口。
+
+		通过BpBinder::transact函数进入到Binder驱动程序，Binder驱动程序唤醒Service Manager响应这个ADD_SERVICE_TRANSACTION请求。
+
+		Service Manager收到这个ADD_SERVICE_TRANSACTION请求时，取出Parcel中的JavaBBinder类型的Binder实体纳入到内部进行管理。
+
+
+	三、Client获取XXXService的Java远程接口
+
+		
+	1、通过ServiceManager.getService(String name)获得一个BinderProxy对象，BinderProxy实现IBinder接口。
+
+		实际是用ServiceManagerProxy.getService(String name)方法。
+
+		通过ServiceManagerProxy的成员变量mRemote保存的BinderProxy对象调用transact方法进行进程间通信。
+
+		然后调用回复Parcel reply的readStrongBinder()方法通过JNI调用C++函数。
+
+		在C++中通过Binder驱动程序给XXXService设置handle句柄获得BpBinder对象。
+
+		创建一个BinderProxy对象并把BpBinder对象保存到它的mObject成员变量中。把BinderProxy类型的IBinder返回给JAVA层。
+
+	2、通过XXXService.Stub.asInterface(IBinder BinderProxy)获得XXXService的远程接口。
+
+		XXXService继承IXXX.Stub，IXXX.Stub继承Binder，实现IXXX接口。
+
+		IXXX.Stub.asInterface其实返回 new XXXService.Stub.Proxy(IBinder BinderProxy);Proxy实现IXXX接口。
+
+		BinderProxy类型的IBinder保存到XXXService的远程接口内的成员变量mRemote。
+
+
+	四. Client通过XXXService的Java远程接口来使用XXXService提供的服务的过程
+
+	1、通过XXXService远程接口内的成员变量mRemote保存BinderProxy调用transact方法进行进程间通信。
+
+	2、C++中通过BinderProxy保存的BpBinder对象调用到Binder驱动程序唤醒XXXService服务。
+	
+	3、XXXService这个Server线程被唤醒之后就会调用JavaBBinder类的onTransact函数。
+		
+		XXXService对象保存在JavaBBinder对象的成员变量mObject中。XXXService继承IXXX.Stub，IXXX.Stub继承Binder，实现IXXX接口。
+
+	4、onTransact调用JavaBBinder对象的成员变量mObject保存的XXXService的execTransact函数，execTransact方法调用XXXService的onTransact方法。
+
+	5、XXXService的onTransact方法最终调用了XXXService定义的方法。
+
+
+
+3、解开Android应用程序组件Activity的"singleTask"之谜
+
+	http://blog.csdn.net/luoshengyang/article/details/6714543
+
+	用户为了完成某个功能而执行的一系列操作就形成了一个Activity序列，这个序列在Android应用程序中就称之为任务，它是从用户体验的角度出发，
+	把一组相关的Activity组织在一起而抽象出来的概念。
+	
+	Android源代码工程为我们准备了adb工具，可以查看模拟器上系统运行的状况，执行下面的命令查看;
+	USER-NAME@MACHINE-NAME:~/Android$ adb shell dumpsys activity  
+	 这个命令输出的内容比较多，这里我们只关心TaskRecord部分：
+	Running activities (most recent first):  
+    		TaskRecord{4070d8f8 #3 A shy.luo.task}  
+      		  Run #2: HistoryRecord{406a13f8 shy.luo.task/.SubActivity}  
+      		  Run #1: HistoryRecord{406a0e00 shy.luo.task/.MainActivity}  
+    		TaskRecord{4067a510 #2 A com.android.launcher}  
+      		  Run #0: HistoryRecord{40677518 com.android.launcher/com.android.launcher2.Launcher} 
+	果然，SubActivity和MainActivity都是运行在TaskRecord#3中，并且SubActivity在MainActivity的上面。
+
+	AndroidManifest.xml文件中，没有配置MainActivity和SubActivity的taskAffinity属性，
+	它们的taskAffinity属性值就默认为父标签application的taskAffinity属性值，这里，标签application的taskAffinity也没有配置，
+	于是它们就默认为包名，即"shy.luo.task"。
+		
+	虽然SubActivity的launchMode被设置为"singleTask"模式，但是它并不像官方文档描述的一样：
+	The system creates a new task and instantiates the activity at the root of the new task，而是在跟它有相同taskAffinity的任务中启动，
+	并且位于这个任务的堆栈顶端。
+
+	我们要让一个"singleTask"的Activity在新的任务中启动，需要满足三个条件：
+	r.resultTo为null，launchFlags的Intent.FLAG_ACTIVITY_NEW_TASK位为1，并且addingToTask值为false。
+	从上面的分析中可以看到，即将要启动的Activity的launchMode为"singleTask"，并且调用startActivity时不要求返回要启动的Activity的执行结果，
+	前面两个条件可以满足，要满足第三个条件，只要当前系统不存在affinity属性值等于即将要启动的Activity的taskAffinity属性值的任务就可以了。
+
+	至此，我们总结一下，设置了"singleTask"启动模式的Activity的特点：
+
+        1. 设置了"singleTask"启动模式的Activity，它在启动的时候，会先在系统中查找属性值affinity等于它的属性值taskAffinity的任务是否存在；
+	如果存在这样的任务，它就会在这个任务中启动，否则就会在新任务中启动。
+	因此，如果我们想要设置了"singleTask"启动模式的Activity在新的任务中启动，就要为它设置一个独立的taskAffinity属性值。
+
+        2. 如果设置了"singleTask"启动模式的Activity不是在新的任务中启动时，它会在已有的任务中查看是否已经存在相应的Activity实例，
+	如果存在，就会把位于这个Activity实例上面的Activity全部结束掉，即最终这个Activity实例会位于任务的堆栈顶端中。
+
+
+4、Android应用程序在新的进程中启动新的Activity的方法和过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6720261
+
+	如果android:process属性的值以":"开头，则表示这个进程是私有的；如果android:process属性的值以小写字母开头，则表示这是一个全局进程，
+	允许其它应用程序组件也在这个进程中运行。我们可以不要前面的":"，但这种情况必须保证这个属性字符串内至少有一个"."字符。
+
+	我们如何来确认SubActivity是不是在新的进程中启动呢？Android源代码工程为我们准备了adb工具，可以查看模拟器上系统运行的状况，
+	执行下面的命令查看：adb shell dumpsys activity  
+	......  
+	Running activities (most recent first):  
+    		TaskRecord{40770440 #3 A shy.luo.process}  
+      		  Run #2: HistoryRecord{406d4b20 shy.luo.process/.SubActivity}  
+      		  Run #1: HistoryRecord{40662bd8 shy.luo.process/.MainActivity}  
+    		TaskRecord{40679eb8 #2 A com.android.launcher}  
+      		  Run #0: HistoryRecord{40677570 com.android.launcher/com.android.launcher2.Launcher}  
+	......   
+	PID mappings:  
+    		......  
+  		PID #416: ProcessRecord{4064b720 416:shy.luo.process:shy.luo.process.main/10037}  
+    		PID #425: ProcessRecord{406ddc30 425:shy.luo.process:shy.luo.process.sub/10037}  
+	......  
+	
+	决定一个Activity是在新的进程中启动还是在原有的进程中启动的因素有两个，一个是看这个Activity的process属性的值，
+	另一个是这个Activity所在的应用程序的uid。应用程序的UID是由系统分配的，而Activity的process属性值，可以在AndroidManifest.xml中配置。
+
+	如果Activity的process属性值没有配置，它默认就为application标签的process属性值，如果application标签的process属性值也没有配置，
+	那么，它们就默认为应用程序的package名。
+
+	ProcessRecord app = mService.getProcessRecordLocked(r.processName, r.info.applicationInfo.uid); 
+	这里就是根据processName和uid在系统查找是否已有相应的进程存在，如果已经有了，就会调用realStartActivityLocked来直接启动Activity，
+	否则的话，就要通过调用ActivityManagerService.startProcessLocked函数来创建一个新的进程，然后在新进程中启动这个Activity了。
+
+
+5、Android系统在新进程中启动自定义服务过程（startService）的原理分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6677029
+	http://blog.csdn.net/gaugamela/article/details/53611703
+
+	1、ActivityManagerService远程接口代理ActivityManagerProxy通过进程间通信请求ActivityManagerService创建服务。
+
+	Activity继承了ContextWrapper类，而在ContextWrapper类中，实现了startService函数。在ContextWrapper类中，有一个成员变量mBase，
+	它是一个ContextImpl实例，而ContextImpl类和ContextWrapper类一样继承于Context类，
+	ContextWrapper类的startService函数最终过调用ContextImpl类的startService函数来实现。
+	这种设计方法在设计模式里面，就称之为装饰模式（Decorator），或者包装模式（Wrapper）。
+
+	 在ContextImpl类的startService，最终又调用了ActivityManagerProxy类的startService来实现启动服务。
+	ActivityManagerProxy是一个Binder对象的远程接口了，而这个Binder对象就是我们前面所说的ActivityManagerService了。
+
+	调用Activity类的startService成员函数，最终调用了ActivityManagerProxy类的startService来实现启动服务。
+
+	在Android应用程序中，每一个进程都用一个ActivityThread实例来表示，而在ActivityThread类中，有一个成员变量mAppThread，
+	它是一个ApplicationThread实例，实现了IApplicationThread接口，它的作用是用来辅助ActivityThread类来执行一些操作。
+	ApplicationThread继承ApplicationThreadNative。ApplicationThreadNative extends Binder implements IApplicationThread。
+
+	参数resolvedType是一个字符串，它表示service这个Intent的MIME类型，它是在解析Intent时用到的。
+	在这个例子中，我们没有指定这个Intent 的MIME类型，因此，这个参数为null。
+
+	intent.writeToParcel(Parcel, 0); 把Intent写到Parcel中。 
+
+	 ActivityManagerProxy类的startService函数把Intent、IApplicationThread实例和resolvedType写入到data本地变量去，
+	接着通过mRemote.transact函数进入到Binder驱动程序，然后Binder驱动程序唤醒正在等待Client请求的ActivityManagerService进程，
+	最后进入到ActivityManagerService的startService函数中。
+
+	2、ActivityManagerService解析intent生成ServiceRecord并保存在其成员变量mPendingServices中。
+
+	通过retrieveServiceLocked来解析service这个Intent，就是解析前面我们在AndroidManifest.xml定义的Service标签的intent-filter相关内容，
+	然后将解析结果放在res.record中，然后继续调用bringUpServiceLocked进一步处理。
+
+	res.record就是ServiceRecord，res.record.processName便是在AndroidManifest.xml文件定义service标签指定的android:process属性值。
+
+	接着调用startProcessLocked函数来创建一个新的进程，以便加载自定义的Service类。
+	最后将这个ServiceRecord保存在成员变量mPendingServices列表中，后面会用到。
+
+	3、ActivityManagerService调用Process.start函数创建新进程，保存ProcessRecord并在新进程中导入ActivityThread这个类,然后执行它的main函数.
+
+	调用Process.start函数创建了一个新的进程，新进程的ProcessRecord保存在mPidSelfLocked列表中。
+	然后指定新的进程导入ActivityThread这个类，然后执行它的main函数，在main函数中创建ActivityThread实例，并调用它的attach(boolean system)。
+
+	ActivityThread对象创建时ApplicationThread对象同时被创建，ApplicationThread实现了IApplicationThread接口。
+	final ApplicationThread mAppThread = new ApplicationThread();final类型,只能被赋值一次。
+
+	4、ActivityThread中用ActivityManagerService远程接口代理ActivityManagerProxy通过进程间通信把ApplicationThread对象传入到ActivityManagerService。
+
+	attach方法调用ActivityManagerNative.getDefault函数得到ActivityManagerService的远程接口，即ActivityManagerProxy，
+	接着把IApplicationThread实例作为参数调用它的attachApplication函数。
+	attachApplication函数主要是将新进程里面的IApplicationThread实例通过Binder驱动程序传递给ActivityManagerService。
+
+	5、ActivityManagerService把ServiceRecord用ApplicationThread对象的远程接口通过进程间通信传回ActivityThread。
+
+	ProcessRecord在ActivityManagerService的mPidsSelfLocked列表中，这里把它取出来，ActivityManagerService成员变量mPendingServices中，
+	保存了一个ServiceRecord，这里通过进程uid和进程名称将它找出来，把ProcessRecord保存在ServiceRecord中。
+
+	把ServiceRecord和ServiceRecord中的ServiceRecord.serviceInfo作为参数，
+	调用ApplicationThread对象的远程接口的scheduleCreateService函数回到原来的ActivityThread对象中执行启动服务的操作。
+
+	6、ActivityThread创建Service实例，回调onCreate()方法并把Service实例放入mServices列表保存起来。
+
+	调用ActivityThread的queueOrSendMessage将Service信息封装成的CreateServiceData对象放到消息队列中去，并且分开这个消息。
+
+	handleCreateService(CreateServiceData data)处理分发消息创建Service实例。
+
+	回调Service实例的onCreate()方法并把Service实例放入mServices列表保存起来(mServices.put(data.token, service))。
+
+	7、通过进程间通信通知AMS创建完成，然后AMS和ActivityThread交替执行Service的回调和通知AMS。
+
+
+6、Android应用程序绑定服务（bindService）的过程源代码分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6745181
+
+	整个调用过程为XXXActivity.bindService->XXXService.onCreate->XXXService.onBind->XXXActivity.ServiceConnection.onServiceConnected->
+	XXXService.XXXBinder.getXXX()
+
+	ContextWrapper的bindService()->mBase(ContextImpl)的bindService()
+
+	1、创建ServiceDispatcher实例和IServiceConnection接口Binder实例
+
+		将ServiceConnection实例和ActivityThread的Hanlder作为参数创建ServiceDispatcher实例,并保存在ServiceDispatcher实例的内部，
+		ServiceDispatcher用自己作为参数创建了一个InnerConnection(继承IServiceConnection.Stub)Binder实例，保存在其内部。
+		InnerConnection对象内部保存ServiceDispatcher实例，就实现了互相关联。
+
+	2、通过进程间通信调用ActivityManagerService的远程接口进入到ActivityManagerService中的bindService()方法
+	
+		把ApplicationThread Binder实例、ActivityToken(ActivityRecord Binder)、intent、InnerConnection实例传入到ActivityManagerService
+
+		ActivityManagerService内得到ProcessRecord和ActivityRecord，生成ServiceRecord，根据IServiceConnection实例生成ConnectionRecord
+
+		把ProcessRecord和ServiceRecord互相保存到内部进行关联。
+
+	3、ActivityManagerService通过进程间通信调用ApplicationThread类型Binder对象的scheduleCreateService方法
+
+		调用ApplicationThreadProxy的mRemote.transact跨进程通信，mRemote是ActivityThread的ApplicationThread的远程接口
+
+		把ServiceRecord(IBinder)和ServiceInfo两个参数传到ApplicationThread的scheduleCreateService中
+
+		ApplicationThread的scheduleCreateService把参数封装在CreateServiceData用Message通过queueOrSendMessage发送H.CREATE_SERVICE消息
+
+	4、ActivityThread中创建Service实例并回调onCreate方法启动Service
+
+		Handler把消息分发给handleCreateService方法，handleCreateService中创建Service实例并回调Service的onCreate方法
+
+	5、Service启动起来后ActivityManagerService继续通过进程间通信调用ApplicationThread类型Binder对象的scheduleBindService方法
+
+		调用ApplicationThreadProxy的mRemote.transact跨进程通信，mRemote是ActivityThread的ApplicationThread的远程接口
+
+		把ServiceRecord(IBinder)、客户端的intent和rebind=false三个参数传到ApplicationThread的scheduleBindService中
+
+		ApplicationThread的scheduleBindService把参数封装在BindServiceData用Message通过queueOrSendMessage发送H.BIND_SERVICE消息
+
+	6、ActivityThread中调用Service的onBind(intent)方法得到一个IBinder实例，并传到ActivityManagerService中
+
+		Handler把消息分发给handleBindService，handleBindService中调用Service的onBind(intent)方法。
+
+		Service的onBind(intent)方法返回Service中的IBinder实例。通过进程间通信调用ActivityManagerService的publishService方法
+
+		把ServiceRecord(IBinder)、客户端的intent和IBinder实例三个参数传到ActivityManagerService的publishService中
+
+	7、ActivityManagerService中把Service的onBinder方法返回的IBinder实例传到Client Activity
+
+		取出ConnectionRecord，并从其中取出InnerConnection(继承IServiceConnection.Stub)Binder实例。
+
+		InnerConnection中保存了ServiceDispatcher，ServiceDispatcher中保存了ServiceConnection。
+
+		把通过InnerConnection-》ServiceDispatcher-》最终回调ServiceConnection的onServiceConnected方法
+
+		
+6、Android系统中的广播（Broadcast）机制简要介绍和学习计划
+
+	http://blog.csdn.net/luoshengyang/article/details/6730748
+
+	广播（Broadcast）是在组件之间传播数据（Intent）的一种机制；这些组件甚至是可以位于不同的进程中，这样它就像Binder机制一样，
+	起到进程间通信的作用
+
+	广播机制却是不可替代的，它和Binder机制不一样的地方在于，广播的发送者和接收者事先是不需要知道对方的存在的，这样带来的好处便是，
+	系统的各个组件可以松耦合地组织在一起，这样系统就具有高度的可扩展性，容易与其它系统进行集成。
+
+	第1步，广播的接收者把广播接收器注册到ActivityManagerService中；第2步，广播的发送者同样是把广播发送到ActivityManagerService中，
+	由ActivityManagerService去查找注册了这个广播的接收者，然后把广播分发给它们。在第2步的分发的过程，其实就是把这个广播转换成一个消息，
+	然后放入到接收器所在的线程消息队列中去，最后就可以在消息循环中调用接收器的onReceive函数了。
+
+	由于ActivityManagerService把这个广播放进接收器所在的线程消息队列后，就返回了，它不关心这个消息什么时候会被处理，因此，
+	对广播的处理是异步的
+
+7、Android应用程序注册广播接收器（registerReceiver）的过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6737352
+
+	在Android的广播机制中，ActivityManagerService扮演着广播中心的角色，负责系统中所有广播的注册和发布操作，因此，
+	Android应用程序注册广播接收器的过程就把是广播接收器注册到ActivityManagerService的过程。
+	
+	Activity继承ContextWrapper，ContextWrapper内部成员变量mBase保存了ContextImpl实例，ContextImpl内保存了Activity的Context。
+	ContextWrapper的registerReceiver()->mBase(ContextImpl)的registerReceiver()-》ContextImpl的registerReceiverInternal方法
+
+	1、创建ReceiverDispatcher实例和IIntentReceiver接口Binder实例
+
+		将注册接收器的宿主Context、BroadcastReceiver和ActivityThread的Hanlder作为参数创建ReceiverDispatcher实例,
+		并保存在ReceiverDispatcher实例的内部，
+		ReceiverDispatcher用自己作为参数创建了一个InnerReceiver(继承IIntentReceiver.Stub)Binder实例，保存在其内部。
+		InnerReceiver对象内部保存ReceiverDispatcher实例，就实现了互相关联。
+
+		
+	2、通过进程间通信调用ActivityManagerService的远程接口进入到ActivityManagerService中的registerReceiver()方法
+	
+		把ApplicationThread Binder实例、InnerReceiver Binder实例、IntentFilter、permission传入到ActivityManagerService
+
+		ActivityManagerService内得到ProcessRecord，生成ReceiverList，用InnerReceiver Binder作为key把ReceiverList保存在AMS成员变量中，
+
+		用IntentFilter生成BroadcastFilter实例，并添加到ReceiverList中去，在把BroadcastFilter实例保存在AMS中。
+
+8、Android应用程序发送广播（sendBroadcast）的过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6744448
+
+	广播的发送者将广播发送到ActivityManagerService，ActivityManagerService接收到这个广播以后，就会在注册中心查找订阅了该广播的接收器，
+	然后把广播逐一发送到这些广播接收器中，但是AMS并不等待广播接收器处理这些广播就返回了，因此，广播的发送和处理是异步的。
+
+	1、广播发送者通过sendBroadcast(intent)方法发送广播	
+
+	Activity/Service继承ContextWrapper，ContextWrapper内部成员变量mBase保存了ContextImpl实例，ContextImpl内保存了Activity的Context。
+	ContextWrapper的sendBroadcast(intent)->mBase(ContextImpl)的sendBroadcast(intent)
+
+	2、通过进程间通信调用ActivityManagerService的远程接口把广播(intent)发送到ActivityManagerService中的broadcastIntent()方法
+	
+		把ApplicationThread Binder实例、intent、permission等传入到ActivityManagerService
+
+		ActivityManagerService内得到ProcessRecord，通过intent查询出注册了该广播的IntentFilter接收器List列表registeredReceivers，
+		然后根据intent和registeredReceivers接收器列表等信息生成BroadcastRecord实例，
+		并把BroadcastRecord实例放入到AMS的成员变量mParallelBroadcasts中保存起来
+
+		BroadcastRecord中保存了广播发送者和接收器列表等信息。
+
+		发送一个BROADCAST_INTENT_MSG空消息，表示有新的广播来了，需要派发
+
+	3、ActivityManagerService遍历BroadcastRecord和遍历BroadcastFilter进行分发
+
+		AMS的Handler收到有新的广播来的消息后，遍历mParallelBroadcasts保存的BroadcastRecord，
+		再遍历BroadcastRecord保存的BroadcastFilter。
+
+		BroadcastFilter中保存了ReceiverList，ReceiverList保存了ProcessRecord和IIntentReceiver，
+		ProcessRecord保存了ApplicationThread Binder，BroadcastRecord中保存了intent等信息。
+
+		得到BroadcastFilter之后，通过进程间通信把IIntentReceiver Binder实例(InnerReceiver类型)和广播(intent)传回到接收器所在的进程，
+		进入到ApplicationThread类型Binder对象的scheduleRegisteredReceiver方法
+
+	4、执行广播接收器的onReceive(Context context, Intent intent)方法
+
+		scheduleRegisteredReceiver调用InnerReceiver的performReceive方法。
+
+		InnerReceiver中保存了ReceiverDispatcher实例，ReceiverDispatcher中保存了接收者宿主Context，ActivityThread的Handler
+		
+		ReceiverDispatcher用handler发送一个绑定了Runnable的消息，Runnable内执行调用广播接收器的onReceive方法。
+
+	接收和发送广播执行了两次异步，AMS在接收到广播后发送一个空消息异步处理，ReceiverDispatcher中发送一个Runnable异步处理。
+
+	广播接收器的onReceive的Context是注册接收器的宿主的Context
+
+
+9、Android应用程序安装过程源代码分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6766010
+
+	Android系统在启动的过程中，会启动一个应用程序管理服务PackageManagerService，这个服务负责扫描系统中特定的目录，
+	找到里面的应用程序文件，即以Apk为后缀的文件，然后对这些文件进解析，得到应用程序的相关信息，完成应用程序的安装过程。
+
+	应用程序管理服务PackageManagerService安装应用程序的过程，其实就是解析析应用程序配置文件AndroidManifest.xml的过程，
+	并从里面得到得到应用程序的相关信息
+
+	1、启动PackageManagerService服务
+
+		系统启动的时候会创建SystemServer进程，并载入SystemServer类，执行SystemServer类的main方法。
+
+		main方法执行init1(args) native方法做一些初始化工作(如初始化SurfaceFlinger和CameraService服务等)，
+		然后再C++中调用SystemServer类的init2()方法。
+
+		init2方法创建一个ServerThread线程实例，并执行run执行线程。
+
+		在ServerThread线程中启动PackageManagerService服务，并添加到ServiceManager中。
+
+	2、PackageManagerService遍历指定文件夹解析APK文件并保存APK信息
+
+		在PMS构造函数中遍历 /system/framework、/system/app、/vendor/app、/data/app /data/app-private文件夹
+
+		为Apk文件创建一个PackageParser.Package实例，解析APK的AndroidManifest.xml文件，并把解析出来的信息保存在Package中。
+
+		把Package保存在PMS中的一个Map中，并把Package中Activity、Service、Receive等组件信息都保存在PMS中。
+
+		
+10、Android系统默认Home应用程序（Launcher）的启动过程源代码分析
+
+	http://blog.csdn.net/luoshengyang/article/details/6767736
+
+ 	Android系统的Home应用程序Launcher是由ActivityManagerService启动的，而ActivityManagerService和PackageManagerService一样，
+	都是在开机时由SystemServer组件启动的，SystemServer组件首先是启动PackageManagerServic，由它来负责安装系统的应用程序，
+	系统中的应用程序安装好了以后，SystemServer组件接下来就要通过ActivityManagerService来启动Home应用程序Launcher了	
+
+	SystemServer组件启动完ActivityManagerService等系统服务后会调用ActivityManagerService的systemReady函数。
+
+	1、查找Launcher应用程序信息
+
+		在AMS的systemReady函数中会执行ActivityStack实例的resumeTopActivityLocked函数，
+		resumeTopActivityLocked又会调用AMS的startHomeActivityLocked函数
+
+		startHomeActivityLocked函数中首先创建一个CATEGORY_HOME类型的Intent，然后用Intent.resolveActivityInfo函数向
+		PackageManagerService查询Category类型为HOME的Activity
+
+		Launcher应用程序的HOME的Activity的信息保存在Intent中后，就可以通过intent和ActivityInfo启动Launcher应用程序了
+
+	2、启动Launcher应用程序
+
+		调用ActivityStack实例的startActivityLocked函数请求启动Launcher应用程序
+		
+		AMS为Launcher应用程序创建进程后，再创建Luancher Activity 的ActivityRecord，并通知Launcher进程的ActivityThread，
+		最后在Launcher进程的ActivityThread中创建Luancher Activity实例，并执行Luancher Activity的onCreate回调方法，
+		Launcher应用程序就启动起来了
+
+		
+	3、查找桌面的应用程序信息
+
+		在Luancher Activity的onCreate方法中开始启动加载桌面应用程序信息
+
+		首先构造一个ACTION_MAIN、CATEGORY_LAUNCHER类型的Intent
+
+		下一步通过这个PackageManagerService.queryIntentActivities接口来取回所有Action类型为Intent.ACTION_MAIN，
+		并且Category类型为Intent.CATEGORY_LAUNCHER的Activity
+
+		最后为每个应用程序创建一个ApplicationInfo实例，保存在一个列表中，有了这个列表就可以在桌面展示所有应用程序了

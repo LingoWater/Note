@@ -1,0 +1,29 @@
+https://www.nowcoder.com/courses/11/5/16
+
+13年google大会上发布
+
+适合数据量不大，但是通信频繁的场景
+
+速度更快，更简单，更健壮
+
+屏幕发生旋转时处理网络请求变得更简单
+
+在ListView等快速滑动时避免浪费资源
+
+Volley的功能：
+
+	1、异步获取Json、图片
+
+	2、网络请求的排序
+
+	3、网络请求的优先级处理
+
+	4、缓存
+
+	5、多级别的取消请求
+
+	6、根据Activity的生命周期进行联动(Activity生命结束时取消网络请求)
+
+不适合大数据和流媒体网络请求
+
+Volley 提供了一个NetWorkImageView，用来替代ImageView，在被Detached的时候自动取消网络请求

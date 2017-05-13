@@ -1,0 +1,579 @@
+1、Android资源管理框架（Asset Manager）简要介绍和学习计划
+	
+	http://blog.csdn.net/luoshengyang/article/details/8738877
+	
+	Android应用程序资源可以分为两大类，分别是assets和res：
+
+	assets类资源放在工程根目录的assets子目录下，它里面保存的是一些原始的文件，这些文件最终会被原装不动地打包在apk文件中。
+	如果我们要在程序中访问这些文件，那么就需要指定文件名来访问。
+
+	res类资源放在工程根目录的res子目录下，它里面保存的文件大多数都会被编译，并且都会被赋予资源ID。
+	这样我们就可以在程序中通过ID来访问res类的资源。
+
+	每一个res资源在编译打包完成之后，都会被分配一个资源ID，这些资源ID最终会被定义为Java常量值，保存在一个R.java文件中，
+	与应用程序的其它源文件一起被编译到程序中，这样我们就可以在程序或者资源文件中通过这些ID常量来访问指定的资源。
+
+	A. 除了assets和res/raw资源被原装不动地打包进APK之外，其它的资源都会被编译或者处理。 
+
+	B. 除了assets资源之外，其它的资源都会被赋予一个资源ID。
+
+	C. 打包工具负责编译和打包资源，编译完成之后，会生成一个resources.arsc文件和一个R.java，前者保存的是一个资源索引表，
+	后者定义了各个资源ID常量。
+
+	D. 应用程序配置文件AndroidManifest.xml同样会被编译成二进制的XML文件，然后再打包到APK里面去。
+
+	E. 应用程序在运行时通过AssetManager来访问资源，或通过资源ID来访问，或通过文件名来访问。
+
+2、Android应用程序资源的编译和打包过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8744683
+
+	资源文件是通过Android资源打包工具aapt（Android Asset Package Tool）打包到APK文件里面的。
+	在打包之前，大部分文本格式的XML资源文件还会被编译成二进制格式的XML资源文件。
+
+	Android资源打包工具在编译应用程序资源之前，会创建一个资源表。这个资源表使用一个ResourceTable对象来描述，当应用程序资源编译完成之后，
+	它就会包含所有资源的信息。有了这个资源表之后， Android资源打包工具就可以根据它的内容来生成资源索引表文件resources.arsc了。
+
+	假设我们当前要编译的应用程序资源目录结构如下所示：
+
+	project  
+  		--AndroidManifest.xml  
+  		--res  
+    			--drawable-ldpi  
+      				--icon.png  
+    			--drawable-mdpi  
+      				--icon.png  
+    			--drawable-hdpi  
+      				--icon.png  
+    			--layout  
+      				--main.xml  
+      				--sub.xml  
+    			--values  
+      				--strings.xml  
+
+	1、解析AndroidManifest.xml，创建ResourceTable对象
+
+        	解析AndroidManifest.xml是为了获得要编译资源的应用程序的包名称。manifest标签的package属性的值描述的就是应用程序的包名称。
+		有了这个包名称之后，就可以创建资源表了，即创建一个ResourceTable对象。
+
+	2、添加被引用资源包
+	
+		Android系统定义了一套通用资源，这些资源可以被应用程序引用。
+		例如，我们在XML布局文件中指定一个LinearLayout的android:orientation属性的值为“vertical”时，
+		这个“vertical”实际上就是在系统资源包里面定义的一个值。
+
+		Android系统提供的资源经过编译后，就位于out/target/common/obj/APPS/framework-res_intermediates/package-export.apk文件中，
+		因此，在Android源代码工程环境中编译的应用程序资源，都会引用到这个package-export.apk。
+
+		编译一个Android应用程序的资源的时候，至少会涉及到两个包，一个是被引用的系统资源包，另一个是当前正在编译的应用程序资源包。
+		每一个包都可以定义自己的资源，同时它也可以引用其它包的资源。
+
+		资源ID是一个4字节的无符号整数，其中，最高字节表示Package ID，次高字节表示Type ID，最低两字节表示Entry ID。
+
+		Package ID相当于是一个命名空间，限定资源的来源。Android系统当前定义了两个资源命名空间，其中一个系统资源命令空间，
+		它的Package ID等于0x01，另外一个是应用程序资源命名空间，它的Package ID等于0x7f。
+
+		Type ID是指资源的类型ID。资源的类型有animator、anim、color、drawable、layout、menu、raw、string和xml等等若干种，
+		每一种都会被赋予一个ID。
+
+		Entry ID是指每一个资源在其所属的资源类型中所出现的次序。注意，不同类型的资源的Entry ID有可能是相同的，
+		但是由于它们的类型不同，我们仍然可以通过其资源ID来区别开来。
+
+	3、收集资源文件
+
+		在编译应用程序资源之前，Android资源打包工具aapt会创建一个AaptAssets对象，用来收集当前需要编译的资源文件。
+		这些需要编译的资源文件就保存在AaptAssets类的成员变量mRes中。
+
+		 AaptAssets类的成员变量mRes是一个类型为ResourceTypeSet的KeyedVector，这个KeyedVector的Key就是资源的类型名称。
+		由此就可知，收集到资源文件是按照类型来保存的。例如，例子中，一共有三种类型的资源，分别是drawable、layout和values，
+		于是，就对应有三个ResourceTypeSet。
+
+		ResourceTypeSet类本身描述的也是一个KeyedVector，不过它里面保存的是一系列有着相同文件名的AaptGroup。
+		例如，对于我们在这篇文章中要用到的例子：
+
+		1. 类型为drawable的ResourceTypeSet只有一个AaptGroup，它的名称为icon.png。这个AaptGroup包含了三个文件，
+		分别是res/drawable-ldpi/icon.png、res/drawable-mdpi/icon.png和res/drawable-hdpi/icon.png。每一个文件都用一个AaptFile来描述，
+		并且都对应有一个AaptGroupEntry。每一个AaptGroupEntry描述的都是不同的资源配置信息，
+		即它们所描述的屏幕密度分别是ldpi、mdpi和hdpi。
+
+		2. 类型为layout的ResourceTypeSet有两个AaptGroup，它们的名称分别为main.xml和sub.xml。这两个AaptGroup都是只包含了一个AaptFile，
+		分别是res/layout/main.xml和res/layout/sub.xml。这两个AaptFile同样是分别对应有一个AaptGroupEntry，
+		不过这两个AaptGroupEntry描述的资源配置信息都是属于default的。
+
+		3. 类型为values的ResourceTypeSet只有一个AaptGroup，它的名称为strings.xml。这个AaptGroup只包含了一个AaptFile，
+		即res/values/strings.xml。这个AaptFile也对应有一个AaptGroupEntry，这个AaptGroupEntry描述的资源配置信息也是属于default的。
+
+	4、将收集到的资源增加到资源表
+
+		前面收集到的资源保存在AaptAssets对象中，需要将这些资源增加到前面所创建的一个ResourceTable对象中去，
+		因为最后我们需要根据这个ResourceTable来生成资源索引表，即生成resources.arsc文件。
+
+		注意，这一步收集到资源表的资源是不包括values类型的资源的。类型为values的资源比较特殊，它们要经过编译之后，
+		才会添加到资源表中去。这个过程我们后面再描述。
+
+		在ResourceTable类中，每一个资源都是分别用一个Entry对象来描述的，这些Entry分别按照Pacakge、Type和ConfigList来分类保存。
+		例如，对于我们的例子，假设它的包名为“shy.luo.activity”，那么在ResourceTable类的成员变量mPackages和mOrderedPackages中，
+		就会分别保存有一个名称为“shy.luo.activity”的Package。
+
+		这个名称为“shy.luo.activity”的Package中，分别包含有drawable和layout两种类型的资源，每一种类型使用一个Type对象来描述，其中：
+
+		1. 类型为drawable的Type包含有一个ConfigList。这个ConfigList的名称为icon.png，包含有三个Entry，
+		分别为res/drawable-ldip/icon.png、res/drawable-mdip/icon.png和res/drawable-hdip/icon.png。
+		每一个Entry都对应有一个ConfigDescription，用来描述不同的资源配置信息，即分别用来描述ldpi、mdpi和hdpi三种不同的屏幕密度。
+
+		2. 类型为layout的Type包含有两个ConfigList。这两个ConfigList的名称分别为main.xml和sub.xml。
+		main.xml的ConfigList包含一个Entry，即res/layout/main.xml。sub.xml的ConfigList包含一个Entry，即res/layout/sub/xml。
+
+	5、编译values类资源
+
+		类型为values的资源描述的都是一些简单的值，如数组、颜色、尺寸、字符串和样式值等，这些资源是在编译的过程中进行收集的。
+
+		例子中，包含有一个strings.xml的文件，它的内容如下所示：
+		<?xml version="1.0" encoding="utf-8"?>  
+		<resources>  
+    			<string name="app_name">Activity</string>  
+    			<string name="sub_activity">Sub Activity</string>  
+    			<string name="start_in_process">Start sub-activity in process</string>  
+    			<string name="start_in_new_process">Start sub-activity in new process</string>  
+    			<string name="finish">Finish activity</string>  
+		</resources>
+
+		文件经过编译之后，资源表就多了一个名称为string的Type，这个Type有五个ConfigList。
+		这五个ConfigList的名称分别为“app_name”、“sub_activity”、“start_in_process”、“start_in_new_process”和“finish”，
+		每一个ConfigList又分别含有一个Entry，每一个Entry都对应有一个ConfigDescription。
+
+	6、给Bag资源分配ID
+
+		类型为values的资源除了是string之外，还有其它很多类型的资源，其中有一些比较特殊，如bag、style、plurals和array类的资源。
+		这些资源会给自己定义一些专用的值，这些带有专用值的资源就统称为Bag资源。例如，
+		android:orientation属性的取值范围为｛“vertical”、“horizontal”｝，就相当于是定义了vertical和horizontal两个Bag。
+
+		在继续编译其它非values的资源之前，我们需要给之前收集到的Bag资源分配资源ID，因为它们可能会被其它非values类资源引用到。
+		假设在res/values目录下，有一个attrs.xml文件，它的内容如下所示：
+		<?xml version="1.0" encoding="utf-8"?>  
+		<resources>  
+    			<attr name="custom_orientation">  
+        			<enum name="custom_vertical" value="0" />  
+        			<enum name="custom_horizontal" value="1" />  
+    			</attr>  
+		</resources>  
+
+		aapt在编译这个文件的时候，就会生成以下三个Entry，custom_orientation、custom_vertical和custom_horizontal。
+		
+		三个Entry均为Bag资源项，custom_vertical(id类型资源)和custom_horizontal(id类型资源)是custom_orientation(attr类型资源)的两个bag，
+		我们可以将custom_vertical和custom_horizontal看成是custom_orientation的两个元数据，用来描述custom_orientation的取值范围。
+
+		实际上，custom_orientation还有一个内部元数据，用来描述它的类型。这个内部元数据也是通过一个bag来表示的，
+		这个bag的名称和值分别为“^type”和TYPE_ENUM，用来表示它描述的是一个枚举类型的属性。
+		注意，所有名称以“^”开头的bag都是表示一个内部元数据。
+
+		对于custom_orientation来说，我们需要给它的^type、custom_vertical和custom_horizontal分配资源ID，
+		其中，^type分配到的是attr类型的资源ID，而custom_vertical和custom_horizontal分配到的是id类型的资源ID。
+
+	7、编译Xml资源文件
+
+		除了values类型的资源文件，其它所有的Xml资源文件都需要编译。
+
+		这里我们只挑layout类型的资源文件来说明Xml资源文件的编译过程，main.xml文件内容如下所示：
+		<?xml version="1.0" encoding="utf-8"?>  
+		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"  
+    			android:orientation="vertical"  
+    			android:layout_width="fill_parent"  
+    			android:layout_height="fill_parent"   
+    			android:gravity="center">  
+    			<Button   
+        			android:id="@+id/button_start_in_process"  
+        			android:layout_width="wrap_content"  
+        			android:layout_height="wrap_content"  
+        			android:gravity="center"  
+        			android:text="@string/start_in_process" >  
+    			</Button>  
+    			<Button   
+        			android:id="@+id/button_start_in_new_process"  
+        			android:layout_width="wrap_content"  
+        			android:layout_height="wrap_content"  
+        			android:gravity="center"  
+        			android:text="@string/start_in_new_process" >  
+    			</Button>  
+		</LinearLayout>
+		
+		1. 解析Xml文件
+	
+			解析Xml文件是为了可以在内存中用一系列树形结构的XMLNode来表示它。每一个XMLNode都表示一个Xml元素，其中：
+		   mElementName表示Xml元素标签。mChars表示Xml元素的文本内容。mAttributes表示Xml元素的属性列表。mChildren表示Xml元素的子元素。
+
+			Xml文件解析完成之后，就可以得到一个用来描述根节点的XMLNode，接下来就可以通过这个根节点来完成其它的编译操作。
+
+		2. 赋予属性名称资源ID
+
+			例如，对于main.xml文件的根节点LinearLayout来说，就是要分别给它的属性名称“android:orientation”、
+			“android:layout_width”、“android:layout_height”和“android:gravity”赋予一个资源ID。
+			注意，上述这些属性都是在系统资源包里面定义的，因此，打包工具首先是要在系统资源包里面找到这些名称所对应的资源ID，
+			然后才能赋给main.xml文件的根节点LinearLayout。
+
+			每一个Xml文件都是从根节点开始给属性名称赋予资源ID，然后再给递归给每一个子节点的属性名称赋予资源ID，
+			直到每一个节点的属性名称都获得了资源ID为止。
+
+		3. 解析属性值
+
+			前面提到，android:orientation是在系统资源包定义的一个Bag资源，这个Bag资源分配有资源ID，而且会指定有元数据，
+			也就是它可以取哪些值。对于android:orientation来说，它的合法取值就为“horizontal”或者“vertical”。
+			在系统资源包中，“horizontal”或者“vertical”也同样是一个Bag资源，它们的值分别被定义为0和1。
+
+			假设从系统资源包找到“android:orientation”的资源ID为0x010100c4，那么打包工具就会通过这个资源ID找到它的元数据，
+			也就是两个名称分别为“horizontal”和“vertical”的bag，接着就根据字符串匹配到名称“vertical”的bag，
+			最后就可以将这个bag的值1作为解析结果了。
+
+			对于引用类型的属性值，要进行一些额外的处理。main.xml的第一个Button的android:id属性值“@+id/button_start_in_process”，
+			其中，“@”表示后面描述的属性是引用类型的，“+”表示如果该引用不存在，那么就新建一个，“id”表示引用的资源类型是id，
+			“button_start_in_process”表示引用的名称。
+
+			在"id"前面还可以指定一个包名，如将main.xml的第一个Button的android:id指定为“@+[package:]id/button_start_in_process”
+			如果没有指定包名的话，那么就会默认在当前编译的包里面查找button_start_in_process这个引用。
+
+			无论button_start_in_process在指定的包里面原来就存在，还是新建的，最终打包工具都是将它的资源ID作为解析结果。
+
+			在解析main.xml文件的两个Button节点的android:id属性值时，当前正在编译的资源包没有包含有相应的引用的，
+			因此，Android资源打包工具就会在当前正在编译的资源包里面增加两个类型为id的Entry
+
+			main.xml文件的两个Button节点的android:text属性值，它们分别表示引用的是当前正在编译的资源包的名称分别为
+			“start_in_process”和“start_in_new_process”的string资源。这两个string资源在前面的第五步操作中已经编译过了，
+			因此，这里就可以直接获得它们的资源ID。
+
+		4. 压平Xml文件
+
+			经过前面的三步操作之后，所需要的基本材料都已经准备好了，接下来就可以对Xml文件的内容进行扁平化处理了，
+			实际上就是将Xml文件从文本格式转换为二进制格式
+
+			1. 收集有资源ID的属性的名称字符串
+
+				这一步除了收集那些具有资源ID的Xml元素属性的名称字符串之外，还会将对应的资源ID收集起来放在一个数组中。
+				这里收集到的属性名称字符串保存在一个字符串资源池中，它们与收集到的资源ID数组是一一对应的。
+
+			2. 收集其它字符串
+		
+				这一步收集的是Xml文件中的其它所有字符串。1中，那些具有资源ID的Xml元素属性的名称字符串已经被收集过了，
+				因此，它们在这一步中不会被重复收集。
+
+				对于main.xml文件来说，这一步收集到的字符串如图12所示：android、http://schemas.android.com/apk/res/android、
+				LinearLayout、Button
+
+			3. 写入Xml文件头
+
+				最终编译出来的Xml二进制文件是一系列的chunk组成的，每一个chunk都有一个头部，用来描述chunk的元信息。
+				同时，整个Xml二进制文件又可以看成一块总的chunk，它有一个类型为ResXMLTree_header的头部。
+
+				对于ResXMLTree_header头部来说，内嵌在它里面的ResChunk_header的成员变量的值如下所示：
+				--type：等于RES_XML_TYPE，描述这是一个Xml文件头部。
+				--headerSize：等于sizeof(ResXMLTree_header)，表示头部的大小。
+				--size：等于整个二进制Xml文件的大小，包括头部headerSize的大小。
+
+			4. 写入字符串资源池
+
+				定义在Xml文件中的字符串已经在1和2中收集完毕，因此，这里就可以将它们写入到最终收集到二进制格式的Xml文件中去。
+
+				注意，写入的字符串是严格按照它们在字符串资源池中的顺序写入的。例如，对于main.xml来说，
+				依次写入的字符串为“orientation”、“layout_width”、“layout_height”、“gravity”、“id”、"text"、
+				"android"、“http://schemas.android.com/apk/res/android”、“LinearLayout”和“Button”。
+				之所以要严格按照这个顺序来写入，是因为接下来要将前面1收集到的资源ID数组也写入到二进制格式的Xml文件中去，
+				并且要保持这个资源ID数组与字符串资源池前六个字符串的对应关系。
+
+				写入的字符串池chunk同样也是具有一个头部的，这个头部的类型为ResStringPool_header
+
+			5. 写入资源ID
+
+				前面1中把属性的资源ID都收集起来了。这些收集起来的资源ID会作为一个单独的chunk写入到最终的二进制Xml文件中去。
+				这个chunk位于字符串资源池的后面，它的头部使用ResChunk_header来描述。
+
+			6. 压平Xml文件
+
+				压平Xml文件其实就是指将各个Xml元素中的字符串都替换掉。这些字符串要么是被替换成到字符串资源池的一个索引，
+				要么是替换成一个具有类型的其它值。
+
+	8、生成资源符号
+	
+		这里生成资源符号为后面生成R.java文件做好准备的。从前面的操作可以知道，所有收集到的资源项都按照类型来保存在一个资源表中，
+		即保存在一个ResourceTable对象。因此，打包工具aapt只要遍历每一个Package里面的每一个Type，然后取出每一个Entry的名称，
+		并且根据这个Entry在自己的Type里面出现的次序来计算得到它的资源ID，就可以生成一个资源符号了，资源符号由名称以及资源ID所组成。
+
+		例如，对于strings.xml文件中名称为“start_in_process”的Entry来说，它是一个类型为string的资源项，假设它出现的次序为第3，
+		那么它的资源符号就等于R.string.start_in_process，对应的资源ID就为0x7f050002，其中，高字节0x7f表示Package ID，
+		次高字节0x05表示string的Type ID，而低两字节0x02就表示“start_in_process”是第三个出现的字符串。
+
+	9.生成资源索引表
+
+		1. 收集类型字符串
+
+			4种类型资源分别是drawable、layout、string和id，于是对应的类型字符串就为“drawable”、“layout”、“string”和“id”。
+
+			注意，这些字符串是按Package来收集的，也就是说，当前被编译的应用程序资源有几个Package，就有几组对应的类型字符串，
+			每一个组类型字符串都保存在其所属的Package中。
+
+		2. 收集资源项名称字符串
+
+			如资源项的名称分别为“icon”、“icon”、“icon”、“main”、“sub”、“app_name”、“sub_activity”...，
+			于是收集到的资源项名称字符串就为“icon”、“main”、“sub”、“app_name”、“sub_activity”...
+
+			注意，这些字符串同样是按Package来收集的，也就是说，当前被编译的应用程序资源有几个Package，
+			就有几组对应的资源项名称字符串，每一个组资源项名称字符串都保存在其所属的Package中。
+
+		3. 收集资源项值字符串
+
+			如上面资源项对应的值“res/drawable-ldpi/icon.png”、“res/drawable-mdpi/icon.png”、“res/drawable-hdpi/icon.png”、
+			“res/layout/main.xml”、“res/layout/sub.xml”、“Activity”、“Sub Activity”...
+
+			注意，这些字符串不是按Package来收集的，也就是说，当前所有参与编译的Package的资源项值字符串都会被统一收集在一起。
+
+		4. 生成Package数据块
+
+			参与编译的每一个Package的资源项元信息都写在一块独立的数据上，这个数据块使用一个类型为ResTable_package的头部来描述。
+
+			1. 写入Package资源项元信息数据块头部
+
+				Package资源项元信息数据块头部是用一个ResTable_package来定义的。
+
+			在Android资源中，有一种资源类型称为Public，它们一般是定义在res/values/public.xml文件中，形式如下所示：
+			<?xml version="1.0" encoding="utf-8"?>  
+			<resources>  
+    				<public type="string" name="string3" id="0x7f040001" />  
+			</resources>  
+        		这个public.xml用来告诉Android资源打包工具aapt，将类型为string的资源string3的ID固定为0x7f040001。
+			为什么需要将某一个资源项的ID固定下来呢？一般来说，当我们将自己定义的资源导出来给第三方应用程序使用时，
+			为了保证以后修改这些导出资源时，仍然保证第三方应用程序的兼容性，就需要给那些导出资源一个固定的资源ID。
+
+        		每当Android资源打包工具aapt重新编译被修改过的资源时，都会重新给这些资源赋予ID，这就可能会造成同一个资源项在两次
+			不同的编译中被赋予不同的ID。这种情况就会给第三方应用程序程序带来麻烦，因为后者一般是假设一个ID对应的永远是同一个资源
+			的。因此，当我们将自己定义的资源导出来给第三方应用程序使用时，就需要通过public.xml文件将导出来的资源的ID固定下来。
+
+			注意，我们在开发应用程序时，一般是不需要用到public.xml文件的，因为我们的资源基本上都是在内部使用的，
+			只在内部使用的资源，不管它的ID如何变化，我们都可以通过R.java文件定义的常量来正确地引用它们。
+			只有系统定义的资源包才会使用到public.xml文件，因为它定义的资源是需要提供给第三方应用程序使用的。
+
+			2. 写入类型字符串资源池
+
+			3. 写入资源项名称字符串资源池
+
+			4. 写入类型规范数据块
+
+				类型规范数据块用来描述资源项的配置差异性。通过这个差异性描述，我们就可以知道每一个资源项的配置状况。
+				知道了一个资源项的配置状况之后，Android资源管理框架在检测到设备的配置信息发生变化之后，
+				就可以知道是否需要重新加载该资源项。类型规范数据块是按照类型来组织的，也就是说，
+				每一种类型都对应有一个类型规范数据块。
+				
+				类型规范数据块的头部是用一个ResTable_typeSpec来定义的。
+
+			5. 写入类型资源项数据块
+
+				类型资源项数据块用来描述资源项的具体信息， 这样我们就可以知道每一个资源项名称、值和配置等信息。
+				类型资源项数据同样是按照类型和配置来组织的，也就是说，一个具有N个配置的类型一共对应有N个类型资源项数据块。
+
+				类型资源项数据块的头部是用一个ResTable_type来定义的
+
+		5. 写入资源索引表头部
+
+			资源索引表头部使用一个ResTable_header来表示。
+
+		6. 写入资源项的值字符串资源池
+
+			注意，这个字符串资源池包含了在所有的资源包里面所定义的资源项的值字符串，并且是紧跟在资源索引表头部的后面。
+
+		7. 写入Package数据块
+
+			在前面的第4步中，我们已经所有的Package数据块都收集起来了，因此，这里直接将它们写入到资源索引表去就可以了。
+			这些Package数据块是依次写入到资源索引表去的，并且是紧跟在资源项的值字符串资源池的后面。
+
+	10、编译AndroidManifest.xml文件
+
+		之所以要在应用程序的所有资源项都编译完成之后，再编译应用程序的配置文件，是因为后者可能会引用到前者。
+
+		应用程序配置文件AndroidManifest.xml的编译过程与其它的Xml资源文件的编译过程是一样的。
+		注意，应用程序配置文件AndroidManifest.xml编译完成之后，Android资源打包工具appt还会验证它的完整性和正确性，
+		例如，验证AndroidManifest.xml的根节点mainfest必须定义有android:package属性。
+
+	11、生成R.java文件
+
+		在前面的我们已经将所有的资源项及其所对应的资源ID都收集起来了，因此，这里只要将直接将它们写入到指定的R.java文件去就可以了。
+
+		每一个资源类型在R.java文件中，都有一个对应的内部类，例如，类型为layout的资源项在R.java文件中对应的内部类为layout，
+		而类型为string的资源项在R.java文件中对应的内部类就为string。
+
+	12、打包APK文件
+
+		所有资源文件都编译以及生成完成之后，就可以将它们打包到APK文件去了，包括：
+		
+		1. assets目录
+
+		2. res目录，但是不包括res/values目录， 这是因为res/values目录下的资源文件的内容经过编译之后，都直接写入到资源项索引表去了。
+
+		3. 资源项索引文件resources.arsc。
+
+		当然，除了这些资源文件外，应用程序的配置文件AndroidManifest.xml以及应用程序代码文件classes.dex，
+		还有用来描述应用程序的签名信息的文件，也会一并被打包到APK文件中去，这个APK文件可以直接拿到模拟器或者设备上去安装。
+
+
+3、Android应用程序资源管理器（Asset Manager）的创建过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8791064
+
+	Android应用程序在运行的过程中，是通过一个称为AssetManager的资源管理器来读取打包在APK文件里面的资源文件的。
+
+	我们在Activity组件调用的大部分成员函数都是转发给与它所关联的一个ContextImpl对象的对应的成员函数来处理的，
+	其中就包括用来访问应用程序资源的两个成员函数getResources和getAssets。
+
+	getResources返回的是一个Resources对象，有了这个Resources对象之后，我们就可以通过资源ID来访问那些被编译过的应用程序资源了。
+	getAssets返回的是一个AssetManager对象，有了这个AssetManager对象之后，我们就可以通过文件名来访问那些被编译过或者没有被编译过的
+	应用程序资源文件了。
+
+	在Android系统中，一个进程是可以同时加载多个应用程序的，也就是可以同时加载多个APK文件。
+	每一个APK文件在进程中都对应有一个全局的Resourses对象以及一个全局的AssetManager对象。
+	其中，这个全局的Resourses对象保存在一个对应的ContextImpl对象的成员变量mResources中，
+	而这个全局的AssetManager对象保存在这个全局的Resourses对象的成员变量mAssets中。
+
+	AssetManager类除了在Java层有一个实现之外，在 C++层也有一个对应的实现，而Java层的AssetManager类的功能就是通过C++层的AssetManager类
+	来实现的。Java层的每一个AssetManager对象都有一个类型为int的成员变量mObject，它保存的便是在C++层对应的AssetManager对象的地址，
+	因此，通过这个成员变量就可以将Java层的AssetManager对象与C++层的AssetManager对象关联起来。
+
+	C++层的AssetManager类有三个重要的成员变量mAssetPaths、mResources和mConfig。其中，mAssetPaths保存的是资源存放目录，
+	mResources指向的是一个资源索引表，而mConfig保存的是设备的本地配置信息，例如屏幕密度和大小、国家地区和语言等等配置信息。
+
+	1、ContextImpl通过LoadedApk对象的成员函数getResources获得Resources对象实例
+
+		LoadedApk对象描述的是当前正在启动的Activity组所属的Apk。
+
+		LoadedApk对象的成员函数getResources创建Resources对象后，就会保存在ContextImpl类的成员变量mResources中。
+
+	2、创建AssetManager对象实例
+
+		在ContextImpl要获得Resources实例之前需要先创建Resources对象实例，在创建Resources对象实例之前需要先创建AssetManager对象实例
+
+		AssetManager对象实际是在ActivityThread对象(的成员函数getTopLevelResources)内创建的。
+
+		在ActivityThread类成员函数getTopLevelResources创建AssetManager对象的时候，需要指定资源目录所对应的Apk文件路径，
+		这个Apk文件路径就保存在LoadedApk类的成员变量mResDir中。
+
+		LoadedApk对象只是通过其成员函数getResources将其内部的mResDir传给ActivityThread类的成员函数getTopLevelResources
+		来获得一个Resources对象并返回。
+
+		1、初始化AssetManager实例
+
+			通过init本地的方法来实行初始化。
+
+			首先创建一个C++层的AssetManager对象，接着调用这个C++层的AssetManager对象的成员函数addDefaultAssets来添加系统默认的
+			资源路径，最后将这个C++层的AssetManager对象的地址保存在Java层的AssetManager对象的成员变量mObject中。
+
+			系统资源文件的绝对路径就为“/system/framework/framework-res.apk”。
+
+		2、调用Java层的AssetManager对象的成员函数addAssetPath来添加指定的应用程序资源文件路径
+
+			addAssetPath是一个JNI方法，它是由C++层的函数android_content_AssetManager_addAssetPath来实现的
+
+			先将Java层的一个AssetManager对象成员变量mObject转换为一个C++层的AssetManager对象。
+
+			有了C++层的AssetManager对象之后，就可以调用它的成员函数addAssetPath来将参数path所描述的Apk文件路径添加到它里面去了
+
+		3、创建一个用来访问系统资源的AssetManager对象，并且将它保存在AssetManager类的静态成员变量sSystem中。
+
+	3、创建一个Resources对象实例
+
+		Resources对象实际是在ActivityThread对象(的成员函数getTopLevelResources)内创建的。
+
+		根据前面所创建的Java层的AssetManager对象来创建一个Resources对象。
+
+		1、Resources类的构造函数首先将Java层的AssetManager对象保存在成员变量mAssets中
+
+		2、调用Resources类的成员函数updateConfiguration来设置设备配置信息
+
+			首先是根据参数config和metrics来更新设备的当前配置信息，例如，屏幕大小和密码、国家地区和语言、键盘配置情况等等。
+
+			接着调用Java层的AssetManager对象的成员函数setConfiguration将这些配置信息设置到与之关联的C++层的AssetManager对象中去，
+			以便C++层的AssetManager对象可以根据设备的当前配置信息来找到最合适的资源。
+
+		3、调用AssetManager对象的成员函数ensureStringBlocks来创建字符串资源池
+
+			 AssetManager类的成员变量mStringBlocks是一个StringBlock数组，其中每一个StringBlock对象都是用来描述一个字符串资源池。
+
+			每一个资源表都包含有一个资源项值字符串资源池，AssetManager类的成员变量mStringBlocks就是用来保存所有的资源表中的
+			资源项值字符串资源池的。
+
+			首先获得系统资源表的个数sysNum，接着再获得总的资源表个数num，这是通过调用JNI方法getStringBlockCount来实现的。
+			注意，总的资源表个数num是包含了系统资源表的个数sysNum的。
+
+			将保存在AssetManager类的静态成员变量sSystem所描述的系统资源包AssetManager对象的成员变量mStringBlocks中的
+			资源项值字符串资源池，拷贝到当前正在处理的AssetManager对象的成员变量mStringBlokcs的前sysNum个位置上去。
+
+			调用另外一个JNI方法getNativeStringBlock来读取剩余的其它资源表的资源项值字符串资源池，
+			并且分别将它们封装在mStringBlokcs所描述的一个数组中。
+
+			AssetManager类的JNI方法getNativeStringBlock实际上就是将每一个资源包里面的resources.arsc文件的
+			资源项值字符串资源池数据块读取出来
+
+	4、将Resources对象实例返回给ContextImpl
+
+
+4、Android应用程序资源的查找过程分析
+
+	http://blog.csdn.net/luoshengyang/article/details/8806798
+
+	如果一个资源ID对应的是一个文件，那么Resources类是先根据ID来找到资源文件名称，然后再将该文件名称交给AssetManager类来打开对应的文件
+
+	Resources类根据资源ID来查到资源名称实际上也是要通过AssetManager类来实现的，这是因为资源ID与资源名称的对应关系是在打包在APK里面的
+	resources.arsc文件中的。
+
+	当Resources类查找的资源对应的是一个文件的时候，它就会再次将资源名称交给AssetManager，以便后者可以打开对应的文件，
+	否则的话，上一步找到的资源名称就是最终的查找结果。
+
+	Application Component--File Name-->AssetManager-->Open APK(assets AndroidManifest.xml resources.arsc R.java res)
+
+	Application Component--Resource ID-->Resources--File Name-->AssetManager-->Open APK(assets AndroidManifest.xml resources.arsc R.java res)
+
+	从资源查找的过程来看，它们可以归结为两大类。第一类资源是不对应有文件的，而第二类资源是对应有文件的，
+	例如，字符串资源是直接编译在resources.arsc文件中的，而界面布局资源是在APK包里面是对应的单独的文件的。
+
+	接下来，我们就从Activity类的成员函数setContentView开始，分析Android资源管理框架查找layout资源的过程:
+
+	1、通过Resources对象的getLayout(int id)返回一个XmlResourceParser对象
+
+		1、用资源ID对应二进制资源文件创建一个C++层的ResXMLTree对象
+
+			1、Resources对象通过AssetManager对象打开资源ID对应的二进制资源文件
+	
+				AssetManager对象调用本地方法进入C++层中，用C++中AssetManager对象首先打开二进制资源文件。
+
+			2、C++中AssetManager对象然后创建一个ResXMLTree对象
+
+				C++中AssetManager对象打开二进制资源文件后创建一个ResXMLTree对象，并且将所打开的Xml资源文件的内容设置到该
+				ResXMLTree对象中去，最后将该ResXMLTree对象的地址值返回给JAVA层调用者。
+
+		2、创建一个封装有C++层ResXMLTree对象的地址值的XmlBlock对象，XmlBlock对象会被缓存
+
+			ResXMLTree对象的地址值返回给JAVA层后，就会创建一个XmlBlock对象，把地址保存在XmlBlock对象的成员变量中
+
+		3、Resources中利用XmlBlock对象创建XmlResourceParser对象
+
+			XmlBlock的newParser()函数返回一个XmlResourceParser对象
+
+			newParser()函数中用ResXMLTree对象的地址值为参数调用nativeCreateParseState(mNative)JIN方法在C++层创建一个
+			ResXMLParser对象，再将该C++层的ResXMLParser对象封装成Java层的一个Parser对象中，并且将该Parser对象返回给JAVA层。
+
+			把Parser对象转换成XmlResourceParser对象并返回
+
+	2、把XmlResourceParser对象转换成XmlPullParser对象,解析XmlPullParser创建UI控件
+
+		把XmlResourceParser对象转换成XmlPullParser对象
+
+		把每个父节点和字节点解析并创建成成UI控件，每个子控件都要添加到它的父控件中。
+
+		如果节点的名称的值等于“view”，那么真正要创建的UI控件的类名记录在属性集中的一个名称为“class”的属性中。
+		因此，当参数name的值等于“view”的时候，函数createViewFromTag首先要从属性集中获取接下来真正要创建的UI控件的类名。
+
+		函数createViewFromTag接下来检查成员变量mFactory的值是否不等于null。如果不等于null，那么它就会指向一个Factory对象，
+		该Factory对象描述的是一个UI控件创建工厂，专门用来负责创建UI控件。
+
+		如果LayoutInflater类的成员变量mFactory的值等于null：
+
+		如果参数name是否包含了一个“.”字符，那么就说明当前所创建的UI控件是一个用户自定义的UI控件，
+		成员函数createViewFromTag就会调用成员函数createView来创建由参数name所指定的UI控件
+
+		如果参数name没有包含有“.”字符，那么createViewFromTag就会调用成员函数onCreateView来创建由参数name所指定的UI控件。
+
+		当前正在处理的实际上是一个PhoneLayoutInflater对象，继承了LayoutInflater类，并且重写了成员函数onCreateView。

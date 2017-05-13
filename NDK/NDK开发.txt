@@ -1,0 +1,6 @@
+https://www.nowcoder.com/courses/11/6/10
+Eclipse下 需要先 Preferences -》NDK-》关联NDK目录路径
+Eclipse下 工程右键-》Android Tools -》Add Native Support 可自动创建jni目录和相应Android.mk、.c/.cp文件
+
+编写.c/.cpp文件前先生成相应的头文件：命令进入到工程-》bin->classes目录，执行 javah -jni + 包名+类名 生成头文件,把头文件放入jni目录，再在.c/.cpp文件中引入头文件
+	如：javah -jni com.android.ndktest.NativeClass
