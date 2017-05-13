@@ -16,6 +16,8 @@ git help <verb>：查看帮助  如：git help config
 	$ git <verb> --help
 	$ man git-<verb>
 
+git remote add <shortname> <url>：添加远程仓库  如：git remote add pb https://github.com/paulboone/ticgit 添加远程ticgit仓库，简写为pb
+
 
 获取已有项目：git clone + 项目地址
 
