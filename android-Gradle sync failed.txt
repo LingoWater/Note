@@ -4,6 +4,8 @@ Error:Failed to open zip file. Gradle's dependency cache may be corrupt (this so
 
 	gradle-wrapper.properties指向的版本要跟 Settings > Build,Execution,Deployment > Gradle中 Gradle home设置的版本一致。
 
+	gradle-wrapper.properties里配置的路径就是android studio自动更新gradle的路径
+
 
 
 
