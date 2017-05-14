@@ -1,0 +1,7 @@
+https://www.nowcoder.com/courses/11/7/16
+
+ORM(Object Relational Mapping)框架采用元数据来描述对象与关系映射细节。
+
+把对象持久化到数据库
+
+就是利用java的反射机制把对象和数据库记录映射关联起来
