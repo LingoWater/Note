@@ -1,0 +1,11 @@
+https://www.nowcoder.com/courses/11/7/10
+
+配置简单，强大的View注入绑定和简单的常用方法注解
+
+.强大方便的处理View绑定和Click事件，简化代码、提升开发效率
+
+.方便的处理ListView的Adapter里的ViewHolder绑定问题
+
+.运行时不会影响APP效率，使用配置方便
+
+.代码思路清晰，可读性强
