@@ -9,3 +9,13 @@
 	修改成执行：git pull Learn master --allow-unrelated-histories解决问题，即后面需要添加“--allow-unrelated-histories”
 
 
+三、git bash中git status命令不能正确显示中文问题，默认情况下显示八进制字符编码
+	如：默认时显示"\347\254\254\344\270\211\346\226\271\346\241\206\346\236\266/Butterknife.txt"
+
+	通过git config --global core.quotepath false配置，即可正确显示中文
+
+	设置后显示：第三方框架/Butterknife.txt
+
+	
+
+
