@@ -1,3 +1,12 @@
+http://www.jikexueyuan.com/course/3070_5.html?ss=1
+
+Android Debugging Bridge (ADB)
+
+Client-Server³ÌĞò(3²¿·Ö×é³É)
+	Client - ÔËĞĞÔÚPC/Host
+	Server - ¹ÜÀí×Å¿Í»§¶ËºÍÊØ»¤½ø³ÌÍ¨ĞÅµÄÒ»¸öºóÌ¨·şÎñ
+	Daemon - ÔËĞĞÔÚÃ¿¸öÉè±¸»òÄ£ÄâÆ÷ÉÏµÄÒ»¸öºóÌ¨ÊØ»¤½ø³Ì
+
 adb install:°²×°apk  Èç£ºadb install + apkÄ¿Â¼
 
 adb push£º°ÑÎÄ¼şÉÏ´«µ½androidÉè±¸ÉÏ   Èç£ºadb push test /sdcard/test °ÑtestÎÄ¼şÉÏ´«µ½sdcardÄ¿Â¼ÖĞ
@@ -7,4 +16,18 @@ adb shell£º²Ù×÷androidÉè±¸ÉÏµÄÎÄ¼şºÍÄ¿Â¼£¬ÏÈÖ´ĞĞadb shellÃüÁî     Èç£ºadb shell»
 df£º¿É²é¿´ÎÄ¼şÏµÍ³µÄ½á¹¹
 
 adb logcat£º²é¿´ÔËĞĞÊ±µÄĞÅÏ¢
+
+adb devices£ºÁĞ³öÁ¬½ÓÔÚPC/HostÉÏµÄandroidÉè±¸
+
+adb shell£º´´½¨Ò»¸ö»á»°ÖÕ¶Ë
+
+adb root£ºÒÔrootÉí·İÔËĞĞadb
+
+adb remount£ºÖØ¶¨ÏòËù¹ÒÔØµÄÎÄ¼şÏµÍ³µÄÈ¨ÏŞ
+
+adb push£º´ÓPC/Host·¢ËÍÒ»¸öÎÄ¼şµ½Éè±¸
+
+adb pull£º´ÓÉè±¸ÉÏÏÂÔØÒ»¸öÎÄ¼şµ½Ö÷»ú
+
+adb kill-server£ºÍ£Ö¹·şÎñ
 
