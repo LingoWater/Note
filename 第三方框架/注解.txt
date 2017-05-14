@@ -1,0 +1,13 @@
+https://www.nowcoder.com/courses/11/7/10
+
+结构：@+注解名(也可以叫类名) + 传递的属性值，key和value，可设置目标
+
+范围：方法(Method)、属性(Filed)、类(Type)
+
+自定义注解要用到@interface：用于定义注解；@Target：用于描述注解的使用范围；@Retention：注解的生命周期，一般RetentionPolicy.RUNTIME
+
+主流框架：Dagger、ButterKnife、Android Annotations
+
+标准注解：Documented、Inherited、Retention、Target
+标记注解：Override覆盖类中的方法、Deprecated标记位丢弃的类、SuppressWarnings抑制编译器发出特定的警告
+一般注解：Generated标识计算机产生的源代码
