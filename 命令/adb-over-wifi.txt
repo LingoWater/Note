@@ -1,0 +1,15 @@
+http://www.jikexueyuan.com/course/3070_5.html?ss=1
+
+用wifi可以同时连接多台设备
+
+. ./adb root
+
+  ./adb remount
+
+  ./adb shell "echo service.adb.tcp.port.port=5555>>/data/local.prop"
+
+. ./adb shell chmod 0644 /data/local.prop
+
+  ping IP ADDRESS [to check if you can connect to it]
+
+. ./adb connect IP ADDRESS:55555
