@@ -1,0 +1,9 @@
+https://www.nowcoder.com/courses/11/7/19
+https://www.nowcoder.com/courses/11/7/20
+
+Gson是Google提供的用来在Java对象和JSON数据之间进行映射的Java类库。可以将一个JSON字符串转成一个Java对象，或者反过来。
+
+.快速、高效
+.代码量少、简洁
+.面向对象
+.数据传递和解析方便
