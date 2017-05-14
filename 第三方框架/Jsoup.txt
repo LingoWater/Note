@@ -1,0 +1,14 @@
+https://www.nowcoder.com/courses/11/7/23
+https://www.nowcoder.com/courses/11/7/24
+https://www.nowcoder.com/courses/11/7/25  （解析HTML与Epub）
+
+Jsoup是一款Java的HTML解析器，可直接解析某个URL地址、HTML文本内容。它提供了一套非常省力的API，
+可通过DOM，CSS以及类似于jQuery的操作方法来取出和操作数据
+
+.HTML、XML、自定义DOM格式文本解析
+
+.可操作HTML元素、属性、文本
+
+.适用与采集解析网站HTML
+
+.DOM解析功能强大
