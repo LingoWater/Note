@@ -1,0 +1,13 @@
+https://www.nowcoder.com/courses/11/7/7
+
+EventBus是一个发布/订阅的事件总线。可以让两个组件相互通信，但是他们之间并不相互知晓。
+
+EventBus支持Sticky Event
+
+包含4个部分：发布者，订阅者，事件，总线
+
+onEventMainThread 和 onEvent(AnyEventType event) 主线程
+onEventPostThread 当前线程
+onEventBackgroundThread 后台线程
+onEventAsync 异步线程
+
