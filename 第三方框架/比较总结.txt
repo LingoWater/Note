@@ -8,3 +8,29 @@
 	.Picasso使用复杂的图片压缩转换来尽可能的减少内存消耗
 
 	.在Adapter中需要取消已经不在视野范围的ImageView图片资源的加载，否则导致图片错误，Picasso已经解决了这个问题
+
+
+二、EventBus 与 Otto
+	https://www.nowcoder.com/courses/11/7/7
+
+	.声明时间的处理方法：EventBus采用命名规范，Otto采用注解(较消耗内存)
+
+	.事件继承：EventBus和Otto都支持
+
+	.用户继承：EventBus和Otto都支持
+
+	.缓存最近的事件：EventBus支持，滞留事件，Otto不支持
+
+	.事件生产者(例如编码缓存事件)：EventBus不支持，Otto支持
+
+	.交互线程的事件传递：EventBus和Otto都支持
+
+	.主线中的事件传递：EventBus支持，Otto不支持
+
+	.后台线程的事件传递：EventBus支持，Otto不支持
+
+	.异步的事件传递：EventBus支持，Otto不支持
+
+	.EventBus在效率和性能上比Otto高
+
+	
