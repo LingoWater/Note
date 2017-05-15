@@ -18,6 +18,7 @@ SpannableString 为扩展性文字，可以将一些图片、特殊文字样式等拓展内容附着到我们的
 ClickableSpan 默认有一个下划线和linkColor，需要修改时，我们可以继承扩展类，重写updateDrawState(TextPaint ds)方法
 
 给TextView设置链接，需要激活点击，调用tv.setMovementMethod(LinkMovementMethod.getInstance());//激活链接
+http://blog.csdn.net/qq_25465845/article/details/51263090
 
 
 代码示例：
