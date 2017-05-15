@@ -1,0 +1,1 @@
+interface 变量自带public static final修饰，定义变量时不需要写上。

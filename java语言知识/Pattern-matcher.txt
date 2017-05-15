@@ -1,0 +1,24 @@
+String regexAt = "@[\u4e00-\u9fa5\\w]+";
+String regexTopic = "#[\u4e00-\u9fa5\\w]+#";
+String regexEmoji = "\\[[\u4e00-\u9fa5\\w]+\\]";
+
+String regex = "(" + regexAt + ") | (" + regexTopic + ") | (" + regexEmoji + ")";
+
+String source = "xxx";
+SpannableString spannableString = new SpannableString(source);
+
+Pattern pattern = Pattern.compile(regex);
+Matcher matcher = pattern.matcher(source/spannableString);
+
+// while(matcher.find()) 从头逐个匹配
+while(matcher.find()){
+	// 0代表匹配整个regex，1代表匹配regex的第一个括号，2代表匹配regex的第二个括号，3代表匹配regex的第三个括号
+	String atStr = matcher.group(1);
+	String toStr = matcher.group(2);
+	String emojiStr = matcher.group(3);
+
+	// 1/2/3代表第几个匹配
+	int start matcher.start(1/2/3);
+}
+
+// matcher.reset(); find会从头开始，重新遍历

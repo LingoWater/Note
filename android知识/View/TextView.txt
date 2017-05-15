@@ -1,0 +1,1 @@
+给TextView设置链接，需要激活点击，调用tv.setMovementMethod(LinkMovementMethod.getInstance());//激活链接

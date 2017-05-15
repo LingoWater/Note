@@ -1,0 +1,37 @@
+https://www.nowcoder.com/courses/11/9/21
+
+SpannableString 为扩展性文字，可以将一些图片、特殊文字样式等拓展内容附着到我们的文本上。
+
+拓展内容类型：
+
+.ClickableSpan 文本可点击，有点击事件
+
+.UnderlineSpan 下划线
+
+.ImageSpan 图片
+
+.StyleSpan 字体样式（粗体、斜体等）
+
+.URLSpan 文本超链接
+
+
+ClickableSpan 默认有一个下划线和linkColor，需要修改时，我们可以继承扩展类，重写updateDrawState(TextPaint ds)方法
+
+给TextView设置链接，需要激活点击，调用tv.setMovementMethod(LinkMovementMethod.getInstance());//激活链接
+
+
+代码示例：
+
+	SpannableString spanStr = new SpannableString(source); // 将源字符串包装成拓展性字符串
+	ImageSpan span = new ImageSpan(context, bitmap);// 创建一个拓展对象，这里是图片拓展
+	spanStr.setSpan(span, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE); // 设置拓展内容
+
+	span为拓展内容
+	start为拓展内容开始位置
+	end为拓展内容的结束位置
+	Spannable.SPAN_EXCLUSIVE_EXCLUSIVE第一个EXCLUSIVE代表文本前不包含，第二个EXCLUSIVE代表文本后不包含，
+	EXCLUSIVE可以用INCLUSIVE代替，表示包含。
+
+	如果为Spannable.SPAN_EXCLUSIVE_INCLUSIVE，把字符串中的两个文字设置为粗体时，在这两个文字后插入新文字，那么插入的新文字也变成粗体。
+
+
