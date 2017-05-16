@@ -1,0 +1,7 @@
+
+ViewPager直接用adapter.notifyDataSetChanged()是不能更新的，需要重写adapter的getItemPosition(Object object)方法
+
+	@Override
+	public int getItemPosition(Object object){
+		return 0;
+	}

@@ -1,0 +1,4 @@
+
+要通过ContentProvider查询图片信息，可通过Image的media封装好的方法获取，不用自己用ContentResolver写查询语句。
+
+	Cursor cursor = MediaStore.Images.Media.query(context.getContentResolver, uri, new String[]{MediaStore.Images.Media.DATA});

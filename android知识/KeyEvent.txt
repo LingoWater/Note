@@ -1,0 +1,8 @@
+
+Event.KEYCODE_DEL：回退，回删
+
+	如 对EditText进行回删：
+	
+	// 就是给EditText分发一个KeyEvent事件
+	et.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
+	
