@@ -1,0 +1,13 @@
+
+系统应用的db一般都两个，一个是internal(内部存储)，一个是external(外部存储)。也就代表是存储在内部存储卡和外部存储卡的资源
+
+写入时我们可以指定db，如：图片信息写到外边存储db, MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+
+	String name = "name" + System.currentTimeMillis();
+	ContentValues values = new ContentValues();
+	values.put(MediaStore.Images.Media.TITLE, name);
+	values.put(MediaStore.Images.Media.DISPLAY_NAME, name + ".jpeg");
+	values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+	Uri uri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+	

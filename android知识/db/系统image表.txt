@@ -1,0 +1,4 @@
+
+字段包括：图片路径、文件名称、图片类型(mime_type)、图片名称
+
+图片类型存储格式：image/png、image/jpeg

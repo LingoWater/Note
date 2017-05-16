@@ -1,0 +1,6 @@
+scheme:
+	content:// 代表从ContentProvider获取
+
+
+图片目录Uri地址：content://media/external/images/media
+具体某个图片Uri地址：content://media/external/images/media/388

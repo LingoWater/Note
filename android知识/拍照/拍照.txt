@@ -1,0 +1,12 @@
+
+如果应用调起相机拍照前向系统数据库写入了一条相片信息记录，取消拍照返回后需要删除相片信息记录
+
+	拍照前：
+	String name = "name" + System.currentTimeMillis();
+	ContentValues values = new ContentValues();
+	values.put(MediaStore.Images.Media.TITLE, name);
+	values.put(MediaStore.Images.Media.DISPLAY_NAME, name + ".jpeg");
+	values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+	Uri uri = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+	取消拍照：
+	context.getContentResolver().delete(uri, null, null);
