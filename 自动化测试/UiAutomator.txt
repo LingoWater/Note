@@ -1,0 +1,21 @@
+谷歌在Android4.1退出UiAutomator测试框架，主要用于UI自动化测试
+
+功能：模拟人对手机操作，模拟各种动作如点击、长按、滑动、按键等操作
+
+优点：编写快速、运行简单、API简单易学、无Activity限制、无需签名、几乎可以模拟所有的认为操作
+
+缺点：
+	对权限控制不足
+	无法像Instrumentation一样高权限操作应用
+	很多android API无法利用
+
+使用UiAutomator Viewer工具可查看UI的结构和属性
+
+
+三个重要类：UiDevice、UiSelector、UiObject
+
+使用UiAutomatorHelper.java类可以在java中直接编译运行测试用例，会在代码中调用adb命令。省去了adb繁琐的操作。
+可以在github.com上下载UiAutomatorHelper，然后在java工程中加入UiAutomatorHelper.java类，再在测试类中加入main入口方法，并在其中初始实例化UiAutomatorHelper
+
+
+UiSelector在android4.3版本后才可以使用id查找
