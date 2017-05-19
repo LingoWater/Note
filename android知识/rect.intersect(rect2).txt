@@ -1,0 +1,2 @@
+
+Rect的rect.intersect(rect2)方法判断rect和rect2是否有交集时，rect的值会被修改，所以要保证rect值不变时，应该写成rect2.intersect(rect)

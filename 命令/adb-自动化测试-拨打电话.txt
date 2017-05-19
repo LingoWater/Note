@@ -1,0 +1,7 @@
+UiAutomator自动化测试过程中，模拟进来一个电话
+
+cmd控制台：
+
+	telnet lacalhost
+
+	gsm call 1234567890

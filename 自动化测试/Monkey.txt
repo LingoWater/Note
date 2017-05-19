@@ -1,0 +1,55 @@
+Monkey是Google提供的一个命令行工具，可以运行在模拟器或者实际设备中。它向系统发送伪随机的用户事件（如按键、手势、触摸屏等输入），
+对软件进行稳定性与压力测试。
+
+Monkey程序是Android系统自带的
+	
+	路径：/system/framework/Monkey.jar
+
+	启动脚本路径：/system/bin/monkey
+
+
+
+启动Monkey：
+
+	直接PC启动：adb shell monkey [option] <count>  保存在PC
+
+		adb shell monkey [option] <count> > d:\monkey.txt
+
+	shell端启动：
+		>adb shell
+		>monkey [option] <count>
+		保存在终端(手机)
+
+		monkey [option] <count> > /mnt/sdcard/monkey.txt
+
+		标准流和错误流分开
+		monkey [option] <count> 1> /mnt/sdcard/monkey.txt 2> /mnt/sdcard/error.txt
+
+
+-v：log信息输出级别，最大级别可加3个-v，如：adb shell monkey -v -v -v 200
+
+
+-p：允许执行的包名列表，如：adb shell monkey -p com.android.deskclock -p com.android.email -v 100
+
+
+-c：意图的种类，c是Category的意思，根据Activity的Category类型来查找，如：adb shell monkey -c com.jikexueyuan.monkey.MONKEY -v 200
+
+-s <随机数种子>：如果要复现就输入上一次的随机数种子值
+
+--throttle <毫秒>：事件之间插入固定的延迟，
+
+--randomize-throttle：在事件之间插入随机延迟，需要与--throttle配合使用，随机延迟范围为0-throttle设置的时间
+
+--pct-touch <percent>：调整触摸事件的百分比(触摸事件是一个down-up事件，它发生在屏幕上的某一位置)
+
+--pct-motion <percent>：调整动作事件百分比(动作事件由屏幕上某处的一个down事件、一系列的伪随机事件和一个up事件组成)
+
+--pct-syskeys <percent>：调整“系统”按键事件的百分比(这些按键通常被保留，由系统使用，如Home、Back、Start Call、End Call及音量控制键)
+
+--pct-appswitch <percent>：调整启动Activity的百分比，在随机间隔里，Monkey将执行一个startActivity()调用，作为最大程度覆盖包中全部Activity的一种方法
+
+--pct-anyevent <percent>：调整其它类型事件的百分比，它包罗了所有其它类型的事件，如：按键、其它不常用的设备按钮、等等
+
+--pct-flip <percent>：调整键盘换出隐藏的百分比
+
+--put-pinchzoom <percent>：调整两指缩放压缩手势百分比
