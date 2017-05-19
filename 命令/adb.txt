@@ -29,6 +29,8 @@ adb push：从PC/Host发送一个文件到设备
 
 adb pull：从设备上下载一个文件到主机
 
+adb shell pm list packages：列出包名
+
 adb kill-server：停止服务
 
 adb shell ps：查看进程     adb shell ps | find "uiautomator" 查找uiautomator进程

@@ -1,8 +1,27 @@
 ================================  Android Studio  ================================
+http://blog.csdn.net/huningjun/article/details/52450465
 
 1、快速抽取代码到单独的方法中:选中代码 -> Alt+Shift+M
 
 2、从xml或代码中快速抽取字符串到strings.xml本地资源：选中字符串 -> Alt+Enter
 
 3、自动去除无用代码：Ctrl+Shift+O
+
+Ctrl+1：快速修复，把光标放到错误区域，然后按Ctrl+1
+
+Ctrl+D：快速删除
+
+Shift + Enter：创建新行
+
+Ctrl + F11：快速运行
+
+ALT + ↑/↓：快速移动行
+
+Ctrl + ALT + ↑/↓：快速复制行
+
+Ctrl + M：放大工作区
+
+Alt + / ：补全代码
+
+Ctrl + /：注释和消除注释
 

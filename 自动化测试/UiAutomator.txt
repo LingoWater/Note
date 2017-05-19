@@ -19,3 +19,11 @@
 
 
 UiSelector在android4.3版本后才可以使用id查找
+
+
+命令执行test用例：
+
+	adb shell uiautomator runtest Demo.jar --nohup -c com.jikexueyuan.Test#testClear
+
+	需要传入参数可以这样做：
+	adb shell uiautomator runtest Demo.jar --nohup -c com.jikexueyuan.Test#testClear -e key value 在用例代码中就可以通过key获取的value

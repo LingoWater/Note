@@ -32,3 +32,6 @@ mv oldName newName：重命名文件/文件夹   如：mv 1.txt 2.txt将1.txt改成2.txt
 	mv Learn/* . 将Learn下的所有文件和文件夹移到当前目录下(.表示当前目录)
 
 open 路径：打开目录    如：open ./ 打开当前目录
+
+
+ls | grep xxx：显示过滤后的列表
