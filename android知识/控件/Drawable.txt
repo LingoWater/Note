@@ -1,0 +1,2 @@
+
+getResource().getDrawable(int id)过期，用ContextCompat.getDrawable(Context context, int id)代替
