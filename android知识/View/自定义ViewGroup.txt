@@ -1,0 +1,1 @@
+测量子View时用 measureChildWithMargins 代替 measureChild，这样可避免一行多个子View有leftMargin或rightMargin时，最右边的子View的背景被截断。

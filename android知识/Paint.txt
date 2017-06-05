@@ -1,0 +1,1 @@
+paint.setStrokeCap 不支持硬件加速，需要设置setLayerType()，否则无效果
